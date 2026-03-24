@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EDIT SCORE — 編集クオリティ採点</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --yellow:#FFD93D;--pink:#FF8FAB;--mint:#4ECDC4;
+  --bg:#ffffff;--bg2:#f9f9fb;--text:#1a1a2e;--mid:#555570;
+  --light:#9999bb;--border:#ebebf4;--border2:#d8dcf0;
+  --grad:linear-gradient(135deg,var(--yellow) 0%,var(--pink) 55%,var(--mint) 100%);
+  --grad-h:linear-gradient(90deg,var(--yellow),var(--pink));
+  --red:#e05555;--amber:#f5a623;--green:#2ecc71;
+  --ff:'Noto Sans JP',sans-serif;
+  --fm:'Montserrat',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--ff);font-size:14px;min-height:100vh}
+::selection{background:var(--yellow)55}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── NAV ── */
+nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.97);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 48px;height:56px;display:flex;align-items:center;gap:16px}
+.logo{font-family:var(--fm);font-size:18px;font-weight:900;letter-spacing:.08em;color:var(--text)}
+.logo-dot{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.tagline{font-size:11px;color:var(--light);letter-spacing:.06em}
+nav .sp{flex:1}
+#nav-status{font-size:11px;color:var(--light);font-family:var(--fm)}
+#nav-status.ok{color:var(--mint);font-weight:700}
+
+/* ── HERO ── */
+#hero{padding:64px 48px 48px;max-width:1100px;margin:0 auto}
+.hero-label{font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:.16em;color:var(--light);margin-bottom:12px}
+.hero-title{font-family:var(--fm);font-size:42px;font-weight:900;letter-spacing:-.02em;line-height:1.1;margin-bottom:14px}
+.hero-title .grad{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero-sub{font-size:14px;color:var(--mid);line-height:1.8;max-width:560px}
+
+/* ── API KEY ── */
+#api-section{max-width:1100px;margin:0 auto 0;padding:0 48px 24px}
+.api-row{display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px}
+.api-label{font-size:11px;font-weight:700;font-family:var(--fm);color:var(--light);letter-spacing:.06em;white-space:nowrap}
+.api-input{flex:1;border:none;background:transparent;font-size:12px;font-family:'Courier New',monospace;color:var(--text);outline:none}
+.api-btn{padding:6px 16px;border-radius:6px;border:none;background:var(--text);color:#fff;font-size:11px;font-weight:700;font-family:var(--fm);cursor:pointer;letter-spacing:.04em}
+.api-status{font-size:11px;font-family:var(--fm);color:var(--light);white-space:nowrap}
+.api-status.ok{color:var(--mint);font-weight:700}
+
+/* ── DROP ZONE ── */
+#drop-section{max-width:1100px;margin:0 auto;padding:0 48px 40px}
+#drop-zone{
+  border:2px dashed var(--border2);border-radius:16px;
+  padding:56px 40px;text-align:center;
+  cursor:pointer;transition:all .2s;position:relative;background:var(--bg2)
+}
+#drop-zone.drag,#drop-zone:hover{border-color:var(--pink);background:#fff8fb}
+#drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz-icon{font-size:40px;margin-bottom:12px;display:block}
+.dz-title{font-family:var(--fm);font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px}
+.dz-sub{font-size:13px;color:var(--mid)}
+.dz-types{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+.dz-tag{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;font-family:var(--fm);letter-spacing:.04em}
+.tag-xml{background:#e8f4ff;color:#1a5fb4}
+.tag-srt{background:#e8fff4;color:#1a6b3a}
+.tag-txt{background:#fff8e8;color:#7a4a00}
+
+/* ファイルリスト */
+#file-list{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.f-chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--bg);display:flex;align-items:center;gap:6px}
+.f-chip.xml{border-color:#1a5fb440;background:#e8f4ff}
+.f-chip.srt{border-color:#1a6b3a40;background:#e8fff4}
+.f-dot{width:6px;height:6px;border-radius:50%}
+
+/* ── INTENT MEMO ── */
+#intent-section{max-width:1100px;margin:0 auto;padding:0 48px 28px;display:none}
+.intent-box{border:1px solid var(--border2);border-radius:10px;padding:14px 16px;background:var(--bg2)}
+.intent-title{font-size:11px;font-weight:700;font-family:var(--fm);color:var(--mid);letter-spacing:.06em;margin-bottom:8px}
+.intent-input{width:100%;border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-size:12px;font-family:var(--ff);background:var(--bg);color:var(--text);outline:none;resize:vertical;min-height:72px;line-height:1.6}
+.intent-input::placeholder{color:var(--light)}
+.intent-input:focus{border-color:var(--pink)}
+.intent-hint{font-size:11px;color:var(--light);margin-top:6px}
+
+/* ── SCORE BTN ── */
+#score-section{max-width:1100px;margin:0 auto;padding:0 48px 40px;display:none}
+.score-btn{width:100%;padding:18px;border-radius:12px;border:none;background:var(--text);color:#fff;font-family:var(--fm);font-size:15px;font-weight:800;letter-spacing:.06em;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px}
+.score-btn:hover{background:#2d3a50;transform:translateY(-1px)}
+.score-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* ── PROGRESS ── */
+#prog-section{max-width:1100px;margin:0 auto;padding:0 48px;display:none}
+.prog-label{display:flex;justify-content:space-between;font-size:12px;color:var(--mid);margin-bottom:6px;font-family:var(--fm)}
+.prog-track{height:5px;background:var(--border);border-radius:3px}
+.prog-fill{height:100%;border-radius:3px;background:var(--grad-h);width:0%;transition:width .5s ease}
+.prog-step{font-size:11px;color:var(--light);margin-top:5px;font-family:var(--fm)}
+
+/* ── RESULT ── */
+#result-section{max-width:1100px;margin:0 auto;padding:40px 48px 80px;display:none}
+.divider{height:1px;background:var(--border);margin:32px 0}
+
+/* スコアヒーロー */
+.result-hero{display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:center;margin-bottom:40px}
+.score-ring{position:relative;width:140px;height:140px;flex-shrink:0}
+.score-ring svg{position:absolute;inset:0}
+.score-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.score-num{font-family:var(--fm);font-size:52px;font-weight:900;line-height:1;color:var(--text)}
+.score-max{font-size:12px;color:var(--light);font-family:var(--fm)}
+.grade-row{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}
+.grade-label{font-family:var(--fm);font-size:38px;font-weight:900;letter-spacing:-.01em}
+.grade-sub{font-size:14px;color:var(--mid)}
+.result-summary{font-size:14px;color:var(--mid);line-height:1.85}
+
+/* セクション見出し */
+.sec-num{font-family:var(--fm);font-size:11px;font-weight:700;color:var(--light);letter-spacing:.1em;margin-bottom:6px}
+.sec-title{font-family:var(--fm);font-size:20px;font-weight:800;color:var(--text);margin-bottom:18px}
+
+/* 3カテゴリ */
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px}
+.cat-card{border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.cat-head{padding:18px 20px 14px;border-bottom:1px solid var(--border)}
+.cat-icon-title{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.cat-icon{font-size:18px}
+.cat-name{font-family:var(--fm);font-size:13px;font-weight:800;color:var(--text);letter-spacing:.02em}
+.cat-score-row{display:flex;align-items:baseline;gap:4px}
+.cat-score-num{font-family:var(--fm);font-size:32px;font-weight:900}
+.cat-score-den{font-size:13px;color:var(--light);font-family:var(--fm)}
+.cat-bar{height:5px;background:var(--border);border-radius:3px;margin-top:12px}
+.cat-bar-fill{height:100%;border-radius:3px;transition:width .8s ease}
+.cat-items{padding:14px 20px}
+.cat-item{padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.cat-item:last-child{border:none}
+.cat-item-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.cat-item-name{font-weight:500;color:var(--text)}
+.cat-item-score{font-family:var(--fm);font-size:12px;font-weight:700}
+.cat-item-comment{font-size:11px;color:var(--mid);line-height:1.6}
+.cat-item-fix{font-size:11px;color:var(--pink);margin-top:2px}
+.cat-item-fix::before{content:'→ '}
+.cat-item.g .cat-item-score{color:var(--green)}
+.cat-item.w .cat-item-score{color:var(--amber)}
+.cat-item.b .cat-item-score{color:var(--red)}
+
+/* 起承転結 */
+.story-section{margin-bottom:40px}
+.story-bar-wrap{display:flex;height:28px;border-radius:8px;overflow:hidden;margin-bottom:20px;gap:2px}
+.story-seg{display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:11px;font-weight:700;transition:flex .8s ease;min-width:0;border-radius:6px}
+.story-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.story-card{border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.story-card-label{font-family:var(--fm);font-size:20px;font-weight:900;margin-bottom:4px}
+.story-tc{font-size:11px;color:var(--light);font-family:var(--fm);margin-bottom:6px}
+.story-pct{font-family:var(--fm);font-size:13px;font-weight:700;margin-bottom:4px}
+.story-ideal{font-size:10px;color:var(--light);margin-bottom:6px}
+.story-comment{font-size:11px;color:var(--mid);line-height:1.6}
+.story-content{font-size:11px;color:var(--mid);margin-top:4px;font-style:italic}
+
+/* 脳部位 */
+.brain-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:40px}
+.brain-cell{border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+.brain-name{font-size:10px;color:var(--mid);margin-bottom:6px;line-height:1.4}
+.brain-val{font-family:var(--fm);font-size:12px;font-weight:700;padding:3px 8px;border-radius:20px}
+.bv-ok{background:#e8fff4;color:#1a6b3a}
+.bv-warn{background:#fff8e8;color:#7a4a00}
+.bv-bad{background:#ffe8e8;color:#7a0000}
+
+/* 離脱ポイント */
+.dropout-card{display:flex;gap:14px;padding:14px 18px;border-radius:12px;margin-bottom:10px}
+.dropout-card.critical{background:#fff0f0;border:2px solid #e05555}
+.dropout-card.warning{background:#fff8e8;border:2px solid #f5a623}
+.dropout-card.info{background:#f0f4ff;border:1px solid #7090d0}
+.dropout-tc{font-family:var(--fm);font-size:22px;font-weight:900;flex-shrink:0;width:60px;text-align:center;line-height:1.1}
+.dropout-tc.critical{color:#e05555}
+.dropout-tc.warning{color:#f5a623}
+.dropout-tc.info{color:#4a70c0}
+.dropout-tc-sub{font-size:9px;font-weight:500;color:var(--light);display:block;margin-top:2px;font-family:var(--fm)}
+.dropout-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;font-family:var(--fm);margin-bottom:5px}
+.dropout-badge.critical{background:#e05555;color:#fff}
+.dropout-badge.warning{background:#f5a623;color:#fff}
+.dropout-badge.info{background:#4a70c0;color:#fff}
+.dropout-reason{font-size:13px;color:var(--text);margin-bottom:5px;line-height:1.6;font-weight:500}
+.dropout-fix{font-size:12px;color:var(--pink)}
+.dropout-fix::before{content:'修正: '}
+
+/* 改善項目 */
+.issues-list{display:flex;flex-direction:column;gap:10px;margin-bottom:40px}
+.issue-card{display:flex;gap:14px;padding:14px 18px;border:1px solid var(--border);border-radius:12px;background:var(--bg2)}
+.issue-num{width:28px;height:28px;border-radius:50%;background:var(--text);color:#fff;font-family:var(--fm);font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.issue-tc{font-size:11px;color:var(--light);font-family:var(--fm);margin-bottom:3px}
+.issue-txt{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px}
+.issue-fix{font-size:12px;color:var(--pink)}
+.issue-fix::before{content:'→ '}
+
+/* 意図メモ表示 */
+.intent-display{padding:14px 18px;background:#fff8e8;border:1px solid #f5a62340;border-radius:10px;margin-bottom:24px}
+.intent-display-label{font-size:10px;font-weight:700;font-family:var(--fm);color:#7a4a00;letter-spacing:.06em;margin-bottom:4px}
+.intent-display-text{font-size:12px;color:var(--mid);line-height:1.7}
+
+/* 統計テーブル */
+.stats-table{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:32px}
+.st-row{display:grid;grid-template-columns:1fr 1fr 1fr 80px;border-bottom:1px solid var(--border)}
+.st-row:last-child{border:none}
+.st-head{background:var(--bg2)}
+.st-cell{padding:9px 14px;font-size:12px;color:var(--mid)}
+.st-cell.bold{font-weight:500;color:var(--text)}
+.st-cell.g{color:var(--green);font-weight:700}
+.st-cell.w{color:var(--amber);font-weight:700}
+.st-cell.b{color:var(--red);font-weight:700}
+
+/* レポートボタン */
+.report-btn{display:block;width:100%;padding:14px;border-radius:10px;border:2px solid var(--text);background:transparent;color:var(--text);font-family:var(--fm);font-size:13px;font-weight:700;letter-spacing:.06em;cursor:pointer;transition:all .2s;margin-top:16px;text-align:center}
+.report-btn:hover{background:var(--text);color:#fff}
+
+/* ── TRACK CONFIRM ── */
+#track-confirm-section{max-width:1100px;margin:0 auto;padding:0 48px 28px;display:none}
+.tc-title{font-family:var(--fm);font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--light);margin-bottom:10px}
+.tc-subtitle{font-size:13px;color:var(--mid);margin-bottom:14px;line-height:1.6}
+.tc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.tc-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--border);border-radius:10px;background:var(--bg2)}
+.tc-track-name{font-family:var(--fm);font-size:13px;font-weight:800;color:var(--text);flex-shrink:0;width:36px}
+.tc-track-info{font-size:11px;color:var(--light);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tc-role-select{border:1px solid var(--border2);border-radius:7px;padding:5px 10px;font-size:12px;font-family:var(--ff);color:var(--text);background:var(--bg);outline:none;flex-shrink:0;cursor:pointer}
+.tc-role-select:focus{border-color:var(--pink)}
+.tc-role-select.highlight{border-color:var(--amber);background:#fffbf0}
+.tc-note{font-size:11px;color:var(--light);padding:8px 12px;background:var(--bg2);border-radius:8px;border:1px solid var(--border)}
+
+/* toast */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;border-radius:10px;padding:10px 20px;font-size:12px;z-index:200;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.2);opacity:0;transition:opacity .2s;pointer-events:none;font-family:var(--fm)}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="logo">EDIT<span class="logo-dot">SCORE</span></span>
+  <span class="tagline">「面白い動画か面白くないか」を数値で判定</span>
+  <span class="sp"></span>
+  <span id="nav-status">API未設定</span>
+</nav>
+
+<!-- HERO -->
+<div id="hero">
+  <div class="hero-label">01 / OVERVIEW</div>
+  <h1 class="hero-title">編集クオリティを<br><span class="grad">数値で見る。</span></h1>
+  <p class="hero-sub">80点未満 = 面白くない動画。80点以上 = 合格ライン。<br>XMLとSRTをドロップするだけで採点します。</p>
+</div>
+
+<!-- API KEY -->
+<div id="api-section">
+  <div class="api-row">
+    <span class="api-label">API KEY <span style="font-size:10px;font-weight:400;color:var(--light)">(任意)</span></span>
+    <input class="api-input" id="api-input" type="password" placeholder="sk-ant-..." oninput="checkKey(this.value)"/>
+    <button class="api-btn" onclick="saveKey()">保存</button>
+    <span class="api-status" id="api-status">未設定</span>
+  </div>
+</div>
+
+<!-- DROP ZONE -->
+<div id="drop-section">
+  <div id="drop-zone"
+    ondragover="event.preventDefault();onDrag(true)"
+    ondragleave="onDrag(false)"
+    ondrop="handleDrop(event)">
+    <input type="file" accept=".xml,.srt,.txt,.csv" multiple onchange="handleSelect(this.files)"/>
+    <span class="dz-icon">📂</span>
+    <div class="dz-title">ここにファイルをドロップ</div>
+    <div class="dz-sub">XMLとSRT（または字幕テキスト）を一緒にドロップしてください</div>
+    <div class="dz-types">
+      <span class="dz-tag tag-xml">Premiere XML</span>
+      <span class="dz-tag tag-srt">SRT字幕</span>
+      <span class="dz-tag tag-txt">TXTテキスト</span>
+      <span class="dz-tag tag-txt">CSVテキスト</span>
+    </div>
+    <div id="file-list"></div>
+  </div>
+</div>
+
+<!-- INTENT MEMO -->
+<div id="intent-section">
+  <div class="intent-box">
+    <div class="intent-title">💡 意図メモ（任意）</div>
+    <textarea class="intent-input" id="intent-input" placeholder="基準と違う箇所の意図を書いておく（例: 0:58の33秒空白 = 自己紹介アイキャッチ。BGMなしは意図的）"></textarea>
+    <div class="intent-hint">ここに書いた内容は採点に考慮され、レポートに添付されます</div>
+  </div>
+</div>
+
+<!-- TRACK CONFIRM -->
+<div id="track-confirm-section">
+  <div class="tc-title">02 / TRACK ROLES</div>
+  <div class="tc-subtitle">トラックの役割を確認してください。自動判定が間違っている場合は修正してから採点してください。</div>
+  <div class="tc-grid" id="tc-grid"></div>
+  <div class="tc-note">⚠️ BGM・インタビュー音声の役割が正しく設定されていないと採点精度が下がります</div>
+</div>
+
+<!-- SCORE BTN -->
+<div id="score-section">
+  <button class="score-btn" id="score-btn" onclick="runScore()">
+    🎯 採点する（APIキー不要）
+  </button>
+  <div style="text-align:center;margin-top:8px;font-size:11px;color:var(--light)">
+    数値12項目は自動計算。APIキーを設定するとClaudeの詳細コメントが追加されます。
+  </div>
+</div>
+
+<!-- PROGRESS -->
+<div id="prog-section">
+  <div class="prog-label">
+    <span id="prog-msg">解析中...</span>
+    <span id="prog-pct">0%</span>
+  </div>
+  <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+  <div class="prog-step" id="prog-step"></div>
+</div>
+
+<!-- RESULT -->
+<div id="result-section">
+
+  <!-- 80点判定バナー -->
+  <div id="verdict-banner" style="padding:14px 20px;border-radius:12px;border:2px solid transparent;margin-bottom:20px;display:none;align-items:center;gap:10px;font-size:13px"></div>
+
+  <!-- スコアヒーロー -->
+  <div class="result-hero">
+    <div class="score-ring">
+      <svg width="140" height="140" viewBox="0 0 140 140">
+        <circle cx="70" cy="70" r="58" fill="none" stroke="#ebebf4" stroke-width="12"/>
+        <circle cx="70" cy="70" r="58" fill="none" stroke="url(#sg)" stroke-width="12"
+          stroke-dasharray="364" stroke-dashoffset="364"
+          stroke-linecap="round" transform="rotate(-90 70 70)" id="score-arc"/>
+        <defs>
+          <linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#FFD93D"/>
+            <stop offset="100%" stop-color="#FF8FAB"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="score-inner">
+        <div class="score-num" id="score-num">—</div>
+        <div class="score-max">/ 100</div>
+      </div>
+    </div>
+    <div>
+      <div class="grade-row">
+        <div class="grade-label" id="grade-txt">—</div>
+        <div class="grade-sub" id="grade-sub"></div>
+      </div>
+      <div class="result-summary" id="result-summary"></div>
+      <div id="intent-display-area"></div>
+    </div>
+  </div>
+
+  <!-- 統計テーブル -->
+  <div class="sec-num">02 / DATA</div>
+  <div class="sec-title">タイムライン統計</div>
+  <div id="stats-table-area"></div>
+
+  <div class="divider"></div>
+
+  <!-- 3カテゴリ -->
+  <div class="sec-num">03 / SCORE</div>
+  <div class="sec-title">カテゴリ別評価</div>
+  <div class="cat-grid" id="cat-grid"></div>
+
+  <!-- 起承転結 -->
+  <div id="story-area"></div>
+
+  <!-- 脳部位 -->
+  <div class="sec-num">05 / BRAIN</div>
+  <div class="sec-title">視聴者の脳への刺激バランス</div>
+  <div class="brain-grid" id="brain-grid"></div>
+
+  <div class="divider"></div>
+
+  <!-- 離脱ポイント -->
+  <div class="sec-num">06 / DROPOUT</div>
+  <div class="sec-title">⚠️ 視聴者が離脱するポイント</div>
+  <div id="dropout-list" style="margin-bottom:32px"></div>
+
+  <!-- 改善項目 -->
+  <div class="sec-num">07 / ACTION</div>
+  <div class="sec-title">優先改善項目</div>
+  <div class="issues-list" id="issues-list"></div>
+
+  <button id="ai-enhance-btn" style="display:none;width:100%;padding:14px;border-radius:10px;border:2px solid var(--pink);background:transparent;color:var(--pink);font-family:var(--fm);font-size:13px;font-weight:700;letter-spacing:.04em;cursor:pointer;margin-bottom:12px;transition:all .2s">
+  🤖 Claude AIで詳細コメントを追加（APIキー必要）
+</button>
+<div id="source-badge" style="text-align:center;font-size:11px;color:var(--light);margin-bottom:16px;font-family:var(--fm)">
+  📊 ローカル採点 — 数値12項目を自動計算（APIキー不要）
+</div>
+<button class="report-btn" onclick="downloadReport()">📄 レポートを保存</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─── state ────────────────────────────────────────────────────
+let files = {xml: null, srt: null};
+let lastResult = null;
+const ft = s => { const m=Math.floor(s/60),sc=Math.floor(s%60); return`${m}:${sc.toString().padStart(2,'0')}`; };
+const $ = id => document.getElementById(id);
+
+// ─── api key ──────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const k = localStorage.getItem('es_ak');
+  if(k){ $('api-input').value=k; showKeyOk(); }
+});
+function checkKey(v){ const ok=v.startsWith('sk-ant-'); $('api-status').textContent=ok?'✓ 形式OK':'入力中'; $('api-status').className='api-status'+(ok?' ok':''); }
+function saveKey(){ const k=$('api-input').value.trim(); if(!k.startsWith('sk-ant-')){toast('sk-ant- で始まるキーを入力してください');return;} localStorage.setItem('es_ak',k); showKeyOk(); toast('✅ APIキーを保存しました'); }
+function showKeyOk(){ $('nav-status').textContent='API接続済み'; $('nav-status').className='ok'; $('api-status').textContent='✅ 設定済み'; $('api-status').className='api-status ok'; }
+function getKey(){ return localStorage.getItem('es_ak')||''; }
+
+// ─── drop / select ────────────────────────────────────────────
+function onDrag(on){ $('drop-zone').classList.toggle('drag', on); }
+
+function handleDrop(e){
+  e.preventDefault(); onDrag(false);
+  processFiles([...e.dataTransfer.files]);
+}
+function handleSelect(fl){ processFiles([...fl]); }
+
+function processFiles(fs){
+  let xmlFound = false, srtFound = false;
+  for(const f of fs){
+    const ext = f.name.split('.').pop().toLowerCase();
+    if(ext==='xml'){ files.xml=f; xmlFound=true; }
+    else if(ext==='srt'||ext==='txt'||ext==='csv'){ files.srt=f; srtFound=true; }
+  }
+  renderFileList();
+  if(files.xml){
+    // XMLを読み込んでトラック確認画面を表示
+    const reader = new FileReader();
+    reader.onload = e => {
+      const xmlText = e.target.result;
+      files.xmlText = xmlText;
+      showTrackConfirm(xmlText);
+    };
+    reader.readAsText(files.xml, 'UTF-8');
+  } else {
+    const hasAny = files.xml || files.srt;
+    $('score-section').style.display = hasAny ? 'block' : 'none';
+    $('intent-section').style.display = hasAny ? 'block' : 'none';
+  }
+}
+
+// ─── トラック確認UI ────────────────────────────────────────────
+const V_ROLE_OPTIONS = [
+  ['メイン映像（インタビュー本線）','main'],
+  ['Bロール（補助映像）','broll'],
+  ['テロップ・グラフィック','telop'],
+  ['字幕','caption'],
+  ['調整レイヤー / カラグレ','adjust'],
+  ['ネスト・OP/ED','nest'],
+  ['BGM（音楽）','bgm_v'],
+  ['エフェクト・トランジション','effect'],
+  ['その他','other'],
+];
+const A_ROLE_OPTIONS = [
+  ['インタビュー音声','interview'],
+  ['BGM（音楽）','bgm'],
+  ['SE・効果音','se'],
+  ['Bロール現場音（ドローン等）','broll_audio'],
+  ['ナレーション','narr'],
+  ['その他','other'],
+];
+
+function guessVRole(idx, names, count, avg, coverage){
+  if(count===0) return 'other';
+  if(idx===0) return 'main';
+  if(idx===1) return 'broll';
+
+  // ── 特殊判定: 1〜3クリップで全編カバー → 調整レイヤー/ネスト ──
+  // 例: V5に「グラフィック×1クリップ / 全編」は調整レイヤー扱い
+  if(count<=3 && coverage>=90) return 'adjust';
+
+  const allAdjust = names.some(n=>n.includes('調整レイヤー'));
+  const allNest = names.some(n=>n.includes('ネスト'));
+  const hasAudio = names.some(n=>n.match(/\.(wav|mp3|m4a)/i));
+  const hasVideo = names.some(n=>n.match(/\.(mp4|mov|mxf)/i));
+  const hasImg = names.some(n=>n.match(/\.(jpg|jpeg|png|heic|gif)/i));
+
+  // 調整レイヤー
+  if(allAdjust) return 'adjust';
+
+  // ネスト（少数クリップ）
+  if(allNest && count<=5) return 'nest';
+
+  // BGM（音楽ファイルが含まれる）
+  if(hasAudio && !hasVideo) return 'bgm_v';
+
+  // ── テロップ判定（重要） ──
+  // テロップの特徴:
+  // 1. クリップ名が日本語テキスト（「〇〇です」「△△した」など）
+  // 2. または名前が「グラフィック」で50クリップ以上
+  // 3. 動画/画像ファイルが含まれない
+  const hasJapaneseText = names.some(n=>/[ぁ-ん]/.test(n) || /[ァ-ン]/.test(n));
+  const isMostlyGraphic = names.every(n=>!n.match(/\.(mp4|mov|mxf)/i));
+  if(hasJapaneseText && isMostlyGraphic) return 'telop'; // 日本語テキスト名=テロップ確定
+  if(isMostlyGraphic && count>=50) return 'telop'; // グラフィック50件以上=テロップ
+  if(isMostlyGraphic && count>=20 && !hasImg) return 'telop'; // 画像なしで20件以上
+
+  // 字幕（テロップより少なく、短いクリップが多い）
+  if(hasJapaneseText && avg<=3 && count>=20) return 'caption';
+
+  // エフェクト・トランジション（短いクリップが多い）
+  if(avg<=2 && count>=10) return 'effect';
+
+  // マニュアル準拠のデフォルト（プロジェクトで変わるので黄色で表示）
+  // V5=字幕, V6=強調テロップ, V7=強調テロップ, V8=TR
+  if(idx===4) return 'caption';
+  if(idx===5) return 'telop';
+  if(idx===6) return 'telop';
+  if(idx>=7) return 'effect';
+  return 'other';
+}
+function guessARole(idx, names, count, coverage){
+  if(count===0) return 'other';
+  const hasAudio = names.some(n=>n.match(/\.(wav|mp3|m4a|aac|flac)/i));
+  const hasVideo = names.some(n=>n.match(/\.(mp4|mov|mxf)/i));
+  const hasDJI = names.some(n=>n.toLowerCase().includes('dji'));
+  if(hasAudio) return names.some(n=>n.match(/^[0-9]|鈴|太鼓|パッ|SE|効果|ショック|ボタン|Boom|決定/i)) ? 'se' : 'bgm';
+  if(hasDJI) return 'broll_audio';
+  if(hasVideo && (idx===0||idx===1)) return 'interview';
+  if(hasVideo && (idx===2||idx===3)) return 'broll_audio';
+  // マニュアル準拠デフォルト: A1=インタビュー, A2=サブ音声, A3=BGM, A4〜=SE
+  if(idx===0||idx===1) return 'interview';
+  if(idx===2) return 'bgm';
+  if(idx>=3) return 'se';
+  return 'other';
+}
+
+function showTrackConfirm(xmlText){
+  const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+  const fps = 24;
+  const seqs = [...doc.querySelectorAll('sequence')];
+  let mainSeq = null, best = 0;
+  for(const s of seqs){
+    const vt = [...s.querySelectorAll(':scope > media > video > track')];
+    if(!vt.length) continue;
+    const n = vt[0].querySelectorAll('clipitem').length;
+    if(n>best){best=n; mainSeq=s;}
+  }
+  if(!mainSeq){ $('score-section').style.display='block'; $('intent-section').style.display='block'; return; }
+
+  const vtracks = [...mainSeq.querySelectorAll(':scope > media > video > track')];
+  const atracks = [...mainSeq.querySelectorAll(':scope > media > audio > track')];
+
+  // 総尺
+  let totalDur = 0;
+  const v1cis = vtracks[0]?.querySelectorAll('clipitem')||[];
+  for(const ci of v1cis){
+    const e=ci.querySelector(':scope > end');
+    if(e) totalDur=Math.max(totalDur,parseInt(e.textContent)/fps);
+  }
+
+  function getTrackInfo(track){
+    const cis=[...track.querySelectorAll(':scope > clipitem')];
+    const names=[...new Set(cis.map(ci=>ci.querySelector(':scope > name')?.textContent||'').filter(Boolean))].slice(0,3);
+    const durs=cis.map(ci=>{const s=ci.querySelector(':scope > start'),e=ci.querySelector(':scope > end');return(e&&s)?(parseInt(e.textContent)-parseInt(s.textContent))/fps:0;});
+    const total=durs.reduce((a,b)=>a+b,0);
+    const ft=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+    return{count:cis.length, names, coverage:totalDur?Math.round(total/totalDur*100):0, avg:durs.length?Math.round(total/durs.length*10)/10:0, ft};
+  }
+
+  const ft=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+  const seqName = mainSeq.querySelector(':scope > n, :scope > name')?.textContent||'Unknown';
+  
+  let rows = '';
+  // ビデオトラック
+  vtracks.slice(0,9).forEach((tr,i)=>{
+    const info=getTrackInfo(tr);
+    if(!info.count) return;
+    const guess=guessVRole(i, info.names, info.count, info.avg, info.coverage);
+    const opts=V_ROLE_OPTIONS.map(([label,val])=>`<option value="${val}"${val===guess?' selected':''}>${label}</option>`).join('');
+    const needsCheck=['bgm_v','nest','other'].includes(guess);
+    rows+=`<div class="tc-row">
+      <span class="tc-track-name">V${i+1}</span>
+      <span class="tc-track-info">${info.count}クリップ / ${info.names[0]||'—'}</span>
+      <select class="tc-role-select${needsCheck?' highlight':''}" id="vrole-${i}" data-track="v" data-idx="${i}">
+        ${opts}
+      </select>
+    </div>`;
+  });
+  // オーディオトラック
+  atracks.slice(0,8).forEach((tr,i)=>{
+    const info=getTrackInfo(tr);
+    if(!info.count) return;
+    const guess=guessARole(i, info.names, info.count, info.coverage);
+    const opts=A_ROLE_OPTIONS.map(([label,val])=>`<option value="${val}"${val===guess?' selected':''}>${label}</option>`).join('');
+    const needsCheck=['broll_audio','other'].includes(guess);
+    rows+=`<div class="tc-row">
+      <span class="tc-track-name">A${i+1}</span>
+      <span class="tc-track-info">${info.count}クリップ / ${info.coverage}% / ${info.names[0]||'—'}</span>
+      <select class="tc-role-select${needsCheck?' highlight':''}" id="arole-${i}" data-track="a" data-idx="${i}">
+        ${opts}
+      </select>
+    </div>`;
+  });
+
+  $('tc-grid').innerHTML=rows;
+  $('track-confirm-section').style.display='block';
+  $('intent-section').style.display='block';
+  $('score-section').style.display='block';
+
+  // セクションタイトル更新
+  document.querySelector('.tc-subtitle').innerHTML=`<strong>${seqName}</strong>（総尺${ft(Math.floor(totalDur))}）のトラック構成。黄色は要確認。`;
+}
+
+// トラック役割マップを取得（採点時に使用）
+function getTrackRoles(){
+  const roles={v:{},a:{}};
+  document.querySelectorAll('.tc-role-select').forEach(sel=>{
+    const type=sel.dataset.track, idx=parseInt(sel.dataset.idx);
+    roles[type][idx]=sel.value;
+  });
+  return roles;
+}
+
+function renderFileList(){
+  const list = $('file-list');
+  const chips = [];
+  if(files.xml) chips.push(`<div class="f-chip xml"><span class="f-dot" style="background:#1a5fb4"></span>🎬 ${files.xml.name}</div>`);
+  if(files.srt) chips.push(`<div class="f-chip srt"><span class="f-dot" style="background:#1a6b3a"></span>📝 ${files.srt.name}</div>`);
+  list.innerHTML = chips.join('');
+}
+
+// ─── parsers ──────────────────────────────────────────────────
+function parseXML(text){
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(text, 'application/xml');
+  const fps = 24;
+
+  // 全シーケンスからメインを探す（V1クリップが最多かつ総尺が最長）
+  const seqs = [...doc.querySelectorAll('sequence')];
+  let mainSeq = null, bestScore = 0;
+  for(const seq of seqs){
+    const tracks = [...seq.querySelectorAll(':scope > media > video > track')];
+    if(!tracks.length) continue;
+    const v1clips = tracks[0].querySelectorAll('clipitem').length;
+    const durEl = seq.querySelector(':scope > duration');
+    const dur = durEl ? parseInt(durEl.textContent)/fps : 0;
+    const score = v1clips * 10 + dur;
+    if(score > bestScore){ bestScore=score; mainSeq=seq; }
+  }
+  if(!mainSeq) return {ok:false, error:'シーケンスが見つかりません'};
+
+  const seqName = mainSeq.querySelector(':scope > n, :scope > name')?.textContent || 'Unknown';
+  const vtracks = [...mainSeq.querySelectorAll(':scope > media > video > track')];
+  const atracks = [...mainSeq.querySelectorAll(':scope > media > audio > track')];
+
+  function analyzeTrack(track, totalRef){
+    const cis = [...track.querySelectorAll(':scope > clipitem')];
+    const clips = [];
+    for(const ci of cis){
+      const s = ci.querySelector(':scope > start');
+      const e = ci.querySelector(':scope > end');
+      if(!s||!e) continue;
+      const sv=parseInt(s.textContent), ev=parseInt(e.textContent);
+      if(ev<=sv||sv<0) continue;
+      const dur=Math.round((ev-sv)/fps*10)/10;
+      clips.push({dur, start:Math.round(sv/fps*10)/10, end:Math.round(ev/fps*10)/10,
+        name: ci.querySelector(':scope > name')?.textContent||''});
+    }
+    clips.sort((a,b)=>a.start-b.start);
+    if(!clips.length) return null;
+    const durs=clips.map(c=>c.dur);
+    const total=clips[clips.length-1].end;
+    const gaps=[];
+    for(let i=1;i<clips.length;i++){
+      const g=clips[i].start-clips[i-1].end;
+      if(g>0.5) gaps.push({at:Math.round(clips[i-1].end*10)/10, dur:Math.round(g*10)/10});
+    }
+    const ref=totalRef||total;
+    // BGMかどうかはファイル名で判定
+    const names=clips.map(c=>c.name);
+    const isBGM=names.some(n=>/\.(wav|mp3|m4a|aac|flac)$/i.test(n));
+    const isSE=names.some(n=>/\.(wav|mp3)$/i.test(n)) && clips.length>10;
+    const uniqueSongs=isBGM?[...new Set(names.filter(n=>/\.(wav|mp3|m4a|aac|flac)$/i.test(n)))]:[];
+    // テロップ判定: 日本語テキスト名 or グラフィック多数
+    const hasJPText=names.some(n=>/[ぁ-んァ-ン]/.test(n));
+    const hasVideoFile=names.some(n=>/\.(mp4|mov|mxf)/i.test(n));
+    const isTelop=!isBGM&&!hasVideoFile&&(hasJPText||(clips.length>=50&&names.some(n=>n.includes('グラフィック'))));
+    // 1〜3クリップで全体カバー=調整レイヤー（テロップではない）
+    const isAdjustLayer=clips.length<=3&&(durs.reduce((a,b)=>a+b,0)/(ref||1))>=0.85;
+    return{
+      count:clips.length, avg:Math.round(durs.reduce((a,b)=>a+b,0)/durs.length*10)/10,
+      max:Math.round(Math.max(...durs)*10)/10, over30:durs.filter(d=>d>30).length,
+      gapCount:gaps.length, gaps:gaps.slice(0,6),
+      total:Math.round(total*10)/10,
+      coverage:Math.round(durs.reduce((a,b)=>a+b,0)/ref*100*10)/10,
+      isBGM, isSE, isTelop, isAdjustLayer, uniqueSongs, songCount:uniqueSongs.length
+    };
+  }
+
+  const v1=analyzeTrack(vtracks[0]);
+  if(!v1) return {ok:false, error:'V1トラックが空です'};
+  const TOTAL=v1.total;
+
+  const vdata={}, adata={};
+  for(let i=0;i<Math.min(vtracks.length,9);i++) vdata[i+1]=analyzeTrack(vtracks[i],TOTAL);
+  for(let i=0;i<Math.min(atracks.length,8);i++) adata[i+1]=analyzeTrack(atracks[i],TOTAL);
+
+  // BGM/SEトラックを自動判定
+  let bgmTracks=[], seTracks=[];
+  for(const [k,v] of Object.entries(adata)){
+    if(!v) continue;
+    if(v.isBGM) bgmTracks.push({n:parseInt(k),...v});
+  }
+  // BGMが見つからなければA5以降で最大のもの
+  if(!bgmTracks.length){
+    for(let i=5;i<=8;i++){
+      if(adata[i]&&adata[i].count>0) bgmTracks.push({n:i,...adata[i]});
+    }
+  }
+  const bgm = bgmTracks.sort((a,b)=>b.coverage-a.coverage)[0];
+
+  // 30秒ブロック
+  const v1clips_raw = [...vtracks[0].querySelectorAll(':scope > clipitem')].map(ci=>{
+    const s=ci.querySelector(':scope > start'); const e=ci.querySelector(':scope > end');
+    if(!s||!e) return null;
+    const sv=parseInt(s.textContent),ev=parseInt(e.textContent);
+    if(ev<=sv||sv<0) return null;
+    return {start:Math.round(sv/fps*10)/10, end:Math.round(ev/fps*10)/10, dur:Math.round((ev-sv)/fps*10)/10};
+  }).filter(Boolean).sort((a,b)=>a.start-b.start);
+
+  const blocks=[];
+  for(let bs=0;bs<TOTAL;bs+=30){
+    const bc=v1clips_raw.filter(c=>c.start<bs+30&&c.end>bs);
+    if(bc.length) blocks.push({s:bs,n:bc.length,avg:Math.round(bc.reduce((s,c)=>s+c.dur,0)/bc.length*10)/10});
+  }
+
+  // 全BGMトラックの曲を集計
+  const allBgmSongs=new Set();
+  for(const [,v] of Object.entries(adata)){
+    if(v?.uniqueSongs) v.uniqueSongs.forEach(s=>allBgmSongs.add(s));
+  }
+  const totalSongCount=allBgmSongs.size;
+  const songList=[...allBgmSongs].slice(0,5);
+
+  return {ok:true, seqName, totalDur:TOTAL, vdata, adata, bgm,
+    v1Clips:v1.count, v1Avg:v1.avg, v1Max:v1.max, v1Over30:v1.over30, v1Gaps:v1.gapCount,
+    v2Count:vdata[2]?.count||0, v5Count:vdata[5]?.count||0, v6Count:vdata[6]?.count||0,
+    v7Count:vdata[7]?.count||0,
+    // テロップ: isTelopフラグが立ってるトラックを全部合算
+    telopCount:Object.values(vdata).filter(v=>v?.isTelop).reduce((s,v)=>s+v.count,0),
+    telopTracks:Object.entries(vdata).filter(([,v])=>v?.isTelop).map(([k])=>'V'+k),
+    // 調整レイヤー（1〜3クリップで全体カバー）はカウント除外
+    adjustTracks:Object.entries(vdata).filter(([,v])=>v?.isAdjustLayer).map(([k])=>'V'+k),
+    v7Count:vdata[7]?.count||0, vtracksTotal:vtracks.length,
+    a1Coverage:adata[1]?.coverage||0, a1Gaps:adata[1]?.gapCount||0,
+    bgmCoverage:bgm?.coverage||0, bgmTrack:bgm?.n||0,
+    totalSongCount, songList,
+    blocks
+  };
+}
+
+function parseSRT(text){
+  const subs=[];
+  const lines=text.trim().split('\n');
+  let i=0;
+  while(i<lines.length){
+    const line=lines[i].trim();
+    if(line.match(/^\d{2}:\d{2}:\d{2}[,:.]\d/)&&line.includes('-->')){
+      const [ss,es]=line.split('-->').map(s=>s.trim());
+      const tc=s=>{const p=s.replace(/[,]/,'.').split(':');return parseInt(p[0])*3600+parseInt(p[1])*60+parseFloat(p[2]);};
+      let text2='',j=i+1;
+      while(j<lines.length&&lines[j].trim()&&!lines[j].match(/^\d+$/)&&!lines[j].includes('-->')){text2+=lines[j].trim()+' ';j++;}
+      if(text2.trim()) subs.push({start:tc(ss),end:tc(es),text:text2.trim()});
+      i=j; continue;
+    }
+    // 独自形式 HH:MM:SS:FF
+    if(line.match(/^\d{2}:\d{2}:\d{2}:\d{2}\s*-\s*\d{2}:\d{2}:\d{2}:\d{2}/)){
+      const parts=line.split(/\s*-\s*/);
+      const tc=s=>{const p=s.trim().split(':');return parseInt(p[0])*3600+parseInt(p[1])*60+parseInt(p[2])+parseInt(p[3]||0)/24;};
+      let text2='',j=i+1;
+      while(j<lines.length&&lines[j].trim()&&!lines[j].match(/^\d{2}:\d{2}/)){text2+=lines[j].trim()+' ';j++;}
+      if(text2.trim()) subs.push({start:tc(parts[0]),end:tc(parts[1]),text:text2.trim()});
+      i=j; continue;
+    }
+    i++;
+  }
+
+  // CSV形式対応: "開始秒,終了秒,テキスト" or "HH:MM:SS,HH:MM:SS,テキスト" or "テキストのみ"
+  if(subs.length===0){
+    const tryTime=s=>{
+      s=s.trim();
+      if(/^\d+\.?\d*$/.test(s)) return parseFloat(s);
+      const p=s.split(':');
+      if(p.length===3) return parseInt(p[0])*3600+parseInt(p[1])*60+parseFloat(p[2].replace(',','.'));
+      return null;
+    };
+    lines.forEach((line,idx)=>{
+      const cols=line.split(',');
+      if(cols.length>=3){
+        const st=tryTime(cols[0]),en=tryTime(cols[1]);
+        const txt=cols.slice(2).join(',').trim().replace(/^"|"$/g,'');
+        if(st!==null&&en!==null&&txt&&txt.length>0)
+          subs.push({start:st,end:en,text:txt});
+      } else if(line.trim().length>2&&!/^\d+$/.test(line.trim())){
+        // タイムコードなしのプレーンテキスト: 1行ずつ発話として扱う
+        subs.push({start:idx*3,end:idx*3+3,text:line.trim()});
+      }
+    });
+  }
+
+  const allText=subs.map(s=>s.text).join(' ');
+  const fillers=['えー','えーと','あのー','まあ','なんか','うーん','えっと'];
+  const fillerCount=fillers.reduce((s,w)=>s+(allText.match(new RegExp(w,'g'))||[]).length,0);
+  const emotions=['嬉しい','悲しい','辛い','楽しい','驚','感動','泣','笑','怒','恐','怖','素晴らし','最高','ひどい','諦め','夢','感謝'];
+  const emotionCount=emotions.reduce((s,w)=>s+(allText.match(new RegExp(w,'g'))||[]).length,0);
+  const numbers=(allText.match(/\d+[万億千百十%倍件人年月日回個円秒分時間]/g)||[]).length;
+  const totalDur=subs.length?subs[subs.length-1].end:0;
+  const blocks=[];
+  for(let bs=0;bs<totalDur;bs+=30){
+    const bc=subs.filter(s=>s.start<bs+30&&s.end>bs);
+    const t=bc.map(s=>s.text).join(' ');
+    if(t.trim()) blocks.push({start:bs,end:Math.min(bs+30,totalDur),text:t.slice(0,300)});
+  }
+  return{subCount:subs.length,fillerCount,emotionCount,numbers,
+    fullText:allText.slice(0,4000),blocks,totalDur:Math.round(totalDur)};
+}
+
+// ─── score ────────────────────────────────────────────────────
+function setP(pct,msg,step=''){
+  $('prog-fill').style.width=pct+'%'; $('prog-msg').textContent=msg;
+  $('prog-pct').textContent=pct+'%'; $('prog-step').textContent=step;
+}
+
+// ── EDIT SCORE — ローカル採点エンジン ──────────────────────────
+// APIなしで12項目を数値から自動計算する
+// AKベースライン6作品の実測データに基づく
+
+function calcScore(xml, srt, userRoles, intentText){
+  if(!xml?.ok) return null;
+  const ft=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+  const ratio=xml.totalDur/1200; // 20分換算
+  const intent=(intentText||'').toLowerCase();
+
+  // ── ① カット数・テンポ (10点) ──
+  const avg=xml.v1Avg||0;
+  const s1= avg>=2&&avg<=8?10 : avg<=10?8 : avg<=12?5 : 2;
+  const c1= avg>=2&&avg<=8?'good' : avg<=10?'warning':'danger';
+  const fix1= avg>8?`平均カット尺${avg}秒が長い。Bロールを細かく挟んでカットを増やす`:'';
+
+  // ── ② 30秒ルール (10点) ──
+  const over30=xml.v1Over30||0;
+  const s2= over30===0?10 : over30===1?6 : over30<=3?3 : 0;
+  const c2= over30===0?'good' : over30<=1?'warning':'danger';
+  const fix2= over30>0?`${over30}個の30秒超えカットがある。最長${xml.v1Max}秒のクリップを分割する`:'';
+
+  // ── ③ 冒頭フック (10点) ──
+  let s3=5, c3='warning', fix3='SRTを追加すると冒頭フックを採点できます';
+  let hookComment='SRTなしのため推定（5点）';
+  if(srt){
+    const first60=srt.blocks.filter(b=>b.start<60).map(b=>b.text).join(' ');
+    const hookWords=['きつい','辛い','辛そう','挫折','失敗','驚き','衝撃','すごい','信じられない',
+      '万円','億円','%','倍','人','件','位','初','世界','日本','最'];
+    const hasHook=hookWords.some(w=>first60.includes(w));
+    const first10=srt.blocks.filter(b=>b.start<10).map(b=>b.text).join(' ');
+    const hasEarlyHook=hookWords.some(w=>first10.includes(w));
+    s3=hasEarlyHook?10:hasHook?7:3;
+    c3=hasEarlyHook?'good':hasHook?'warning':'danger';
+    hookComment=hasEarlyHook?'最初の10秒以内に引きのキーワードあり':hasHook?'60秒以内にフックあり':'冒頭に感情的なキーワードが見当たらない';
+    fix3=hasEarlyHook?'':hasHook?'もっと冒頭（10秒以内）に感情的なワードを持ってくる':'冒頭に「数字・驚き・辛さ」などの引きを入れる';
+  }
+
+  // ── ④ 無音ギャップ (5点) ──
+  const gaps=xml.v1Gaps||0;
+  const s4= gaps<=5?5 : gaps<=8?3 : gaps<=13?1 : 0;
+  const c4= gaps<=5?'good' : gaps<=8?'warning':'danger';
+  // 意図的除外チェック
+  const gapIntentional=intent.includes('ギャップ')||intent.includes('無音')||intent.includes('アイキャッチ');
+  const s4f=gapIntentional?Math.min(s4+1,5):s4;
+  const fix4= gaps>8?`V1に${gaps}個の無音ギャップ。冒頭2分以内のギャップが特に離脱リスク`:'';
+
+  // ── ⑤ インタビュー音声 (12点) ──
+  const ivCov=xml.a1Coverage||0;
+  const ivGaps=xml.a1Gaps||0;
+  const s5= ivCov>=93&&ivGaps<=7?12 : ivCov>=85?9 : ivCov>=70?6 : 3;
+  const c5= ivCov>=93&&ivGaps<=7?'good' : ivCov>=70?'warning':'danger';
+  const fix5= ivCov<85?`インタビュー音声カバー${ivCov}%。無音区間をカットして密度を上げる`:
+              ivGaps>7?`音声ギャップ${ivGaps}個。ギャップにBGMかSEを入れる`:'';
+
+  // ── ⑥ 音の設計・BGM (12点) ──
+  const songs=xml.totalSongCount||0;
+  const baseSongs=Math.round(15*ratio); // 総尺換算
+  const songRatio=baseSongs>0?songs/baseSongs:0;
+  const s6= songRatio>=0.9?12 : songRatio>=0.6?9 : songRatio>=0.3?5 : 2;
+  const c6= songRatio>=0.9?'good' : songRatio>=0.6?'warning':'danger';
+  const fix6= songs<baseSongs?`BGM${songs}曲（基準${baseSongs}曲）。場面転換ごとにBGMを変えて感情を誘導する`:'';
+
+  // ── ⑦ フィラー除去 (6点) ──
+  let s7=3, c7='warning', fix7='SRTを追加するとフィラーを採点できます';
+  if(srt){
+    const f=srt.fillerCount||0;
+    s7= f<=1?6 : f<=3?4 : f<=9?2 : 0;
+    c7= f<=3?'good' : f<=9?'warning':'danger';
+    fix7= f>3?`えー・あのー等が${f}個。インタビューをカットして言い淀みを除去する`:'';
+  }
+
+  // ── ⑧ SE・効果音 (5点) ──
+  const seCount=Object.values(xml.adata||{})
+    .filter(v=>v?.isSE).reduce((s,v)=>s+v.count,0);
+  const s8= seCount>=50?5 : seCount>=20?3 : seCount>=5?2 : 0;
+  const c8= seCount>=20?'good' : seCount>=5?'warning':'danger';
+  const fix8= seCount<10?`SE・効果音が${seCount}クリップのみ。テロップ出しに効果音を追加するだけでリズムが出る`:'';
+
+  // ── ⑨ Bロール・インサート密度 (12点) ──
+  const v2n=xml.v2Count||0;
+  const baseV2=Math.round(291*ratio);
+  const v2pct=baseV2>0?v2n/baseV2*100:0;
+  const s9= v2pct>=70?12 : v2pct>=50?9 : v2pct>=25?5 : 0;
+  const c9= v2pct>=70?'good' : v2pct>=50?'warning':'danger';
+  const fix9= v2pct<50?`Bロール${v2n}クリップ（基準${baseV2}の${v2pct.toFixed(0)}%）。顔だけ映像が続いて単調になる`:
+              v2pct<70?`もう少しBロールを増やすとテンポが出る`:'';
+
+  // ── ⑩ テロップ (10点) ──
+  const telop=xml.telopCount||0;
+  const baseTelop=Math.round(336*ratio);
+  const telopPct=baseTelop>0?telop/baseTelop*100:0;
+  const s10= telopPct>=50?10 : telopPct>=30?7 : telopPct>=10?4 : 0;
+  const c10= telopPct>=50?'good' : telopPct>=30?'warning':'danger';
+  const fix10= telopPct<30?`強調テロップ${telop}クリップ（基準${baseTelop}の${telopPct.toFixed(0)}%）。V6/V7が少ない区間は演出不足のサイン`:'';
+
+  // ── ⑪ 字幕 (4点) ──
+  const captions=xml.v6Count||xml.v5Count||0;
+  const s11= captions>=100?4 : captions>=20?2 : 0;
+  const c11= captions>=100?'good' : captions>=20?'warning':'danger';
+  const fix11= captions<20?`字幕が${captions}クリップのみ。字幕がないと音声オフで見る視聴者が離脱する`:'';
+
+  // ── ⑫ エフェクト・演出 (4点) ──
+  const v7n=xml.v7Count||0;
+  const s12= v7n>=30?4 : v7n>=10?2 : 0;
+  const c12= v7n>=30?'good' : v7n>=10?'warning':'danger';
+  const fix12= v7n<10?`エフェクト${v7n}クリップのみ。場面転換にトランジションを入れると流れが良くなる`:'';
+
+  // ── 合計 ──
+  const構成=s1+s2+s3+s4f;
+  const音声=s5+s6+s7+s8;
+  const演出=s9+s10+s11+s12;
+  const total=構成+音声+演出;
+
+  // ── 離脱ポイント計算 ──
+  const dropouts=[];
+
+  // 冒頭ギャップ
+  const ivTrack=Object.values(xml.adata||{}).find(v=>v&&!v.isBGM&&!v.isSE&&v.coverage>50);
+  if(ivTrack?.gaps){
+    ivTrack.gaps.slice(0,5).forEach(g=>{
+      if(g.dur>=5 && !gapIntentional){
+        dropouts.push({
+          timecode:ft(g.at), duration_sec:g.dur,
+          reason:`${ft(g.at)}に${g.dur}秒の無音。音が突然消えると「壊れてる?」と思って離脱する`,
+          severity: g.at<120&&g.dur>=9?'critical':'warning',
+          fix: g.at<120?`冒頭なので最優先で修正。BGMかSEで埋めるかカットする`:`BGMかSEでブリッジする`
+        });
+      }
+    });
+  }
+
+  // 30秒ブロックの失速
+  if(xml.blocks){
+    xml.blocks.forEach(b=>{
+      if(b.avg>12){
+        dropouts.push({
+          timecode:ft(b.s), duration_sec:30,
+          reason:`${ft(b.s)}〜${ft(b.s+30)}で平均カット尺${b.avg}秒。テンポが遅くなって見ていて眠くなる区間`,
+          severity:'critical',
+          fix:`この区間のカットを細かく分割するか、Bロールを多く挟んで映像を動かす`
+        });
+      } else if(b.avg>8){
+        dropouts.push({
+          timecode:ft(b.s), duration_sec:30,
+          reason:`${ft(b.s)}〜${ft(b.s+30)}でテンポがやや遅い（平均${b.avg}秒）`,
+          severity:'warning',
+          fix:`Bロールを追加してカットを細かくする`
+        });
+      }
+    });
+  }
+
+  // 30秒超えカット
+  if(over30>0 && xml.v1Max>30){
+    dropouts.push({
+      timecode:'—', duration_sec:xml.v1Max,
+      reason:`${xml.v1Max}秒のカットがある。脳が飽きて離脱する（30秒ルール違反）`,
+      severity:'critical',
+      fix:`このカットを30秒以内に分割する。静止画・Bロールで細切れにする`
+    });
+  }
+
+  // 起承転結
+  let storyStructure=null;
+  if(srt&&srt.blocks?.length>0){
+    const totalSrt=srt.totalDur||xml.totalDur;
+    const allText=srt.blocks.map(b=>b.text).join(' ');
+    // 簡易起承転結推定（発話内容の感情語密度から）
+    const hookEnd=Math.min(totalSrt*0.15, 180);
+    const coreEnd=totalSrt*0.70;
+    const climaxEnd=totalSrt*0.88;
+
+    const getBlocks=(from,to)=>srt.blocks.filter(b=>b.start>=from&&b.start<to);
+    const emotionWords=['辛い','きつい','挫折','悲し','嬉し','楽し','驚','感動','泣','笑','夢','諦め','頑張'];
+    const countEmotion=text=>emotionWords.reduce((s,w)=>s+(text.match(new RegExp(w,'g'))||[]).length,0);
+
+    const kiBlocks=getBlocks(0,hookEnd);
+    const syoBlocks=getBlocks(hookEnd,coreEnd);
+    const tenBlocks=getBlocks(coreEnd,climaxEnd);
+    const ketsuBlocks=getBlocks(climaxEnd,totalSrt);
+
+    const kiText=kiBlocks.map(b=>b.text).join(' ');
+    const tenText=tenBlocks.map(b=>b.text).join(' ');
+    const kiEmo=countEmotion(kiText);
+    const tenEmo=countEmotion(tenText);
+
+    storyStructure={
+      起:{start_tc:'0:00', end_tc:ft(Math.floor(hookEnd)),
+         duration_sec:Math.floor(hookEnd), ratio:Math.round(hookEnd/totalSrt*100)/100,
+         score:kiEmo>=2?85:kiEmo>=1?70:55,
+         status:kiEmo>=2?'good':kiEmo>=1?'warning':'danger',
+         comment:kiEmo>=2?'冒頭から感情的なワードで引きを作れている':kiEmo>=1?'フックはあるが弱い':'冒頭の引きが弱い',
+         content:kiBlocks.slice(0,2).map(b=>b.text.slice(0,40)).join('…')},
+      承:{start_tc:ft(Math.floor(hookEnd)), end_tc:ft(Math.floor(coreEnd)),
+         duration_sec:Math.floor(coreEnd-hookEnd), ratio:Math.round((coreEnd-hookEnd)/totalSrt*100)/100,
+         score:70, status:'warning',
+         comment:'展開パート。情報と感情が交互に入ってるか確認',
+         content:syoBlocks.slice(0,2).map(b=>b.text.slice(0,40)).join('…')},
+      転:{start_tc:ft(Math.floor(coreEnd)), end_tc:ft(Math.floor(climaxEnd)),
+         duration_sec:Math.floor(climaxEnd-coreEnd), ratio:Math.round((climaxEnd-coreEnd)/totalSrt*100)/100,
+         score:tenEmo>=3?80:tenEmo>=1?65:50,
+         status:tenEmo>=3?'good':tenEmo>=1?'warning':'danger',
+         comment:tenEmo>=3?'感情的なクライマックスが作れている':tenEmo>=1?'山場がやや弱い':'クライマックスが見えない',
+         content:tenBlocks.slice(0,2).map(b=>b.text.slice(0,40)).join('…')},
+      結:{start_tc:ft(Math.floor(climaxEnd)), end_tc:ft(Math.floor(totalSrt)),
+         duration_sec:Math.floor(totalSrt-climaxEnd), ratio:Math.round((totalSrt-climaxEnd)/totalSrt*100)/100,
+         score:75, status:'good',
+         comment:'まとめパート',
+         content:ketsuBlocks.slice(0,2).map(b=>b.text.slice(0,40)).join('…')},
+    };
+  }
+
+  // ── グレード ──
+  const grade= total>=90?'A':total>=80?'B':total>=70?'C+':total>=60?'C':'D';
+  const grade_sub= total>=90?'高水準！バズる可能性あり':
+                   total>=80?'合格ライン突破。改善の余地あり':
+                   total>=70?'あと少しで合格ライン（80点）':
+                   '面白くない動画。視聴者は途中で離脱する';
+
+  // ── サマリー文（ルールベース） ──
+  const issues=[];
+  if(over30>0) issues.push(`30秒超えカットが${over30}個ある`);
+  if(gaps>8) issues.push(`無音ギャップが${gaps}個（基準7個以下）`);
+  if(telopPct<30) issues.push(`強調テロップが少なすぎる（${telop}クリップ）`);
+  if(v2pct<50) issues.push(`Bロールが少ない（基準の${v2pct.toFixed(0)}%）`);
+  if(songs<baseSongs*0.6) issues.push(`BGMが${songs}曲しかない（基準${baseSongs}曲）`);
+
+  const summaryBase= total>=80
+    ? `数値的には合格ライン。特に${issues.length?issues[0]+'を修正すると更に良くなる':'全体的にバランスが良い'}。`
+    : `この動画は面白くない（${total}点）。主な理由は「${issues.slice(0,2).join('」「')}」。80点を超えるまで修正が必要。`;
+
+  return {
+    total_score:total,
+    grade, grade_sub,
+    summary: summaryBase + (srt?'':' SRTを追加すると冒頭フック・フィラーも採点できます。'),
+    source:'local', // APIを使っていないことを示す
+    categories:[
+      {name:'構成', icon:'📐', score:構成, max:35,
+       items:[
+         {name:'カット数・テンポ', score:s1, max:10, status:c1, comment:`平均${avg}秒`, fix:fix1},
+         {name:'30秒ルール', score:s2, max:10, status:c2, comment:`30秒超え${over30}個`, fix:fix2},
+         {name:'冒頭フック', score:s3, max:10, status:c3, comment:hookComment, fix:fix3},
+         {name:'無音ギャップ', score:s4f, max:5, status:c4, comment:`V1ギャップ${gaps}個`, fix:fix4},
+       ]},
+      {name:'オーディオ', icon:'🎵', score:音声, max:35,
+       items:[
+         {name:'インタビュー音声', score:s5, max:12, status:c5, comment:`カバー${ivCov}% / ギャップ${ivGaps}個`, fix:fix5},
+         {name:'音の設計・BGM', score:s6, max:12, status:c6, comment:`${songs}曲使用（基準${baseSongs}曲）`, fix:fix6},
+         {name:'フィラー除去', score:s7, max:6, status:c7, comment:srt?`フィラー${srt.fillerCount}個`:'SRTなし', fix:fix7},
+         {name:'SE・効果音', score:s8, max:5, status:c8, comment:`${seCount}クリップ`, fix:fix8},
+       ]},
+      {name:'編集演出', icon:'🎬', score:演出, max:30,
+       items:[
+         {name:'Bロール・インサート', score:s9, max:12, status:c9, comment:`${v2n}クリップ / 基準${baseV2}の${v2pct.toFixed(0)}%`, fix:fix9},
+         {name:'強調テロップ（V6/V7）', score:s10, max:10, status:c10, comment:`${telop}クリップ / 基準${baseTelop}の${telopPct.toFixed(0)}%`, fix:fix10},
+         {name:'字幕', score:s11, max:4, status:c11, comment:`${captions}クリップ`, fix:fix11},
+         {name:'エフェクト', score:s12, max:4, status:c12, comment:`${v7n}クリップ`, fix:fix12},
+       ]},
+    ],
+    story_structure: storyStructure,
+    structure_comment: storyStructure?'字幕データから推定した起承転結（精度は参考程度）':null,
+    brain_analysis:{
+      'ドキドキ感情シーン': srt?(srt.emotionCount>=5?'適切':srt.emotionCount>=2?'少ない':'少なすぎる'):'不明',
+      '続きが見たくなる引き': s3>=7?'適切':'少ない',
+      '共感できる場面': ivCov>=85?'適切':'少ない',
+      '説明・数字シーン': srt?(srt.numbers>=10?'適切':srt.numbers>=3?'少ない':'少なすぎる'):'不明',
+      '記憶に残るシーン': total>=80?'適切':'少ない',
+    },
+    dropout_points: dropouts.slice(0,5),
+    top_issues: issues.slice(0,3).map((iss,i)=>({
+      priority:i+1, timecode:'—',
+      issue:iss,
+      fix:'詳細な改善提案はAPIキーを設定してClaude採点を実行してください',
+      intentional:false
+    })),
+  };
+}
+
+
+async function runScore(){
+  const key=getKey(); // APIキーはオプション（なくても採点可能）
+  if(!files.xml&&!files.srt){toast('XMLをドロップしてください');return;}
+  if(!files.xml){toast('XMLファイルが必要です');return;}
+  $('score-btn').disabled=true; $('score-btn').textContent='⏳ 採点中...';
+  $('prog-section').style.display='block'; $('result-section').style.display='none';
+  setP(5,'ファイルを解析中...','XML・SRTをパース');
+
+  let xmlText='', srtText='';
+  // xmlTextはprocessFilesで既に読み込み済みの場合はそちらを使う
+  xmlText = files.xmlText || (files.xml ? await files.xml.text() : '');
+  if(files.srt) srtText=await files.srt.text();
+
+  const xmlData=xmlText?parseXML(xmlText):{ok:false};
+  const srtData=srtText?parseSRT(srtText):null;
+
+  // ユーザー確認済みのトラック役割でBGM/インタビュートラックを上書き
+  if(xmlData.ok){
+    const userRoles=getTrackRoles();
+    for(const [idx,role] of Object.entries(userRoles.a)){
+      const aN=parseInt(idx)+1;
+      const tr=xmlData.adata[aN];
+      if(!tr) continue;
+      if(role==='bgm'){
+        xmlData.bgm={...tr,n:aN};
+        xmlData.bgmTrack=aN;
+        xmlData.bgmCoverage=tr.coverage;
+        xmlData.totalSongCount=tr.songCount||0;
+        xmlData.songList=tr.uniqueSongs||[];
+      }
+      if(role==='interview'){
+        xmlData.a1Coverage=tr.coverage;
+        xmlData.a1Gaps=tr.gapCount;
+      }
+    }
+  }
+  const intent=$('intent-input').value.trim();
+
+  setP(25,'数値を計算中...','12項目を自動採点');
+  await sleep(200);
+
+  // ── ローカル採点（APIなしで即実行）──
+  const userRoles=getTrackRoles();
+  const localResult=calcScore(xmlData,srtData,userRoles,intent);
+  if(!localResult){toast('採点データの生成に失敗しました');done();return;}
+
+  localResult._xml=xmlData; localResult._srt=srtData; localResult._intent=intent;
+  lastResult=localResult;
+
+  setP(60,'結果を描画中...','レポート生成');
+  await sleep(200);
+  renderResult(localResult,xmlData,srtData,intent);
+  $('prog-section').style.display='none';
+  $('result-section').style.display='block';
+  $('result-section').scrollIntoView({behavior:'smooth',block:'start'});
+
+  // ── Claude AIでコメント強化（APIキーがある場合のみ）──
+  if(key){
+    try{
+      // ローカル結果を表示したまま、バックグラウンドでClaudeがコメントを強化
+      const aiBtn=$('ai-enhance-btn');
+      if(aiBtn) aiBtn.style.display='block';
+    }catch(e){console.log('AI enhance skip:',e);}
+  }
+
+  // ─ Claude API呼び出し（コメント強化）─
+  async function enhanceWithClaude(){
+    const btn=$('ai-enhance-btn');
+    if(btn){btn.textContent='⏳ Claude AIがコメントを追加中...';btn.disabled=true;}
+    const summary=buildSummary(xmlData,srtData,intent);
+    const prompt=buildPrompt(summary,intent);
+    try{
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:5000,
+          messages:[{role:'user',content:prompt}]})
+      });
+      const data=await resp.json();
+      if(data.error) throw new Error(data.error.message);
+      let raw=data.content[0].text.trim();
+      if(raw.startsWith('```')) raw=raw.split('```')[1].replace(/^json/,'').trim();
+      const aiResult=JSON.parse(raw);
+      // ローカル採点の数値を保持しつつ、Claudeのコメントで上書き
+      aiResult.total_score=localResult.total_score; // スコアはローカル数値を使う
+      aiResult.source='ai';
+      aiResult._xml=xmlData; aiResult._srt=srtData; aiResult._intent=intent;
+      lastResult=aiResult;
+      renderResult(aiResult,xmlData,srtData,intent);
+      if(btn){btn.style.display='none';}
+      toast('✅ Claude AIのコメントを追加しました');
+    }catch(e){
+      toast('⚠️ AI強化スキップ: '+e.message);
+      if(btn){btn.textContent='🤖 Claude AIでコメントを追加';btn.disabled=false;}
+    }
+  }
+
+  // ai-enhance-btnにクリックイベントを設定
+  const btn=$('ai-enhance-btn');
+  if(btn) btn.onclick=enhanceWithClaude;
+
+  try{
+    // ローカル採点完了 - finally処理のみ
+  }catch(e){
+    toast('❌ '+e.message); console.error(e);
+  }finally{
+    $('score-btn').disabled=false; $('score-btn').textContent='🎯 採点する';
+  }
+}
+
+function buildSummary(xml,srt,intent){
+  let s='';
+  if(xml?.ok){
+    const ratio=xml.totalDur/1200;
+    const vRows=Object.entries(xml.vdata).filter(([,v])=>v).map(([k,v])=>
+      `  V${k}: ${v.count}クリップ / 平均${v.avg}秒 / 最長${v.max}秒 / 30秒超:${v.over30}個`).join('\n');
+    const aRows=Object.entries(xml.adata).filter(([,v])=>v).map(([k,v])=>{
+      const bgmFlag=v.isBGM?' [BGM/SE判定]':'';
+      return`  A${k}: ${v.count}クリップ / カバー${v.coverage}% / ギャップ${v.gapCount}個${bgmFlag}`;
+    }).join('\n');
+    s+=`【タイムライン解析 — ${xml.seqName}】
+総尺: ${ft(xml.totalDur)}（${xml.totalDur}秒）
+ビデオトラック: ${xml.vtracksTotal}本
+
+V1〜V9:
+${vRows}
+
+オーディオ:
+${aRows}
+
+BGMトラック: A${xml.bgmTrack||'?'}（ユーザー確認済み / マニュアル準拠A3）
+BGM使用曲数: ${xml.totalSongCount}曲（AK基準: 20分で15〜30曲）
+BGM曲リスト（抜粋）: ${xml.songList?.join(' / ')||'不明'}
+BGM空白区間（感情変化なし）: A3の切れ目が少ない区間 → 場面の雰囲気が変化していないサイン（マニュアルCHECK2）
+
+AK基準比較（換算）:
+- V1カット: ${xml.v1Clips}（基準${Math.round(234*ratio)}）
+- 平均カット尺: ${xml.v1Avg}秒（基準4.7秒）
+- 30秒超え: ${xml.v1Over30}個（基準0個）
+- V1ギャップ: ${xml.v1Gaps}個（基準7個以下）
+- V2 インサート・Bロール: ${xml.v2Count}（基準${Math.round(291*ratio)}）
+- 強調テロップV6: ${xml.vdata?.[6]?.count||xml.v6Count||0}クリップ（マニュアル: V6/V7がスカスカ=演出不足）
+- 強調テロップV7: ${xml.vdata?.[7]?.count||0}クリップ
+- 字幕V5: ${xml.v5Count||0}クリップ
+- テロップ合計（${xml.telopTracks?.join(',')||'V5/V6/V7'}）: ${xml.telopCount}クリップ（基準${Math.round(336*ratio)}）
+- BGM曲数: ${xml.totalSongCount}曲（基準15〜30曲 / マニュアル: A3BGMが変わらない区間=感情変化なし）
+- ※無音は演出の一つ。BGMカバレッジ%での評価は行わない
+
+30秒ブロック密度（V1）:
+${xml.blocks.map(b=>`  [${ft(b.s)}-${ft(b.s+30)}] ${b.n}カット 平均${b.avg}秒${b.avg>12?' 🔴':b.avg>8?' ⚠️':''}`).join('\n')}
+`;
+  }
+  if(srt){
+    s+=`\n【字幕・発話解析】
+字幕数: ${srt.subCount} / フィラー: ${srt.fillerCount}個 / 感情語: ${srt.emotionCount}個 / 数字: ${srt.numbers}個
+
+30秒ブロック発話（起承転結分析用）:
+${srt.blocks.map(b=>`  [${ft(b.start)}-${ft(b.end)}] ${b.text.slice(0,80)}`).join('\n')}
+`;
+  }
+  if(intent) s+=`\n【編集者の意図メモ（採点で考慮すること）】\n${intent}`;
+  return s;
+}
+
+function buildPrompt(summary,intent){
+  return`あなたはYouTubeドキュメンタリー動画の編集評価システムです。
+以下のルールに従って採点し、「この動画は面白いか面白くないか」を判定してください。
+
+【最重要ルール】
+80点未満 = 面白くない動画。視聴者は途中で離脱する。
+80点以上 = 面白い動画の最低ライン。
+90点以上 = 高水準。バズる可能性あり。
+
+全ての評価コメントは「偏差値48の高校生でも分かる言葉」で書いてください。
+専門用語を使う場合は必ず（）で説明を入れてください。
+例：
+✗「扁桃体への刺激が少ない」
+✓「見ていてドキドキ・ハラハラするシーンが少ない」
+
+✗「前頭前野への過剰な刺激」
+✓「説明・数字・テロップが多すぎて、感情的な場面が少ない」
+
+✗「ミラーニューロンの活性化が不十分」
+✓「インタビューの表情や生の声が少なくて、共感しにくい」
+
+✗「フィラーワードの過多」
+✓「えー、あのー、まあ、などの言い淀みが多い」
+
+━━━ 脳科学編集マニュアル（評価基準）━━━
+■ 基本ルール
+
+【30秒ルール】
+- 人間の脳は同じ種類の映像が30秒以上続くと「飽きて」画面を閉じる
+- 30秒ごとに「感情 → 説明 → 感情 → 笑い」のように変えることで最後まで見てもらえる
+- これが守れてない動画は80点を超えない
+
+【3秒ルール — カット変化の基本】
+- 3秒に1回は必ず映像の「見え方」を変える（距離・角度・場所）
+- 同じ距離・同じ角度の映像を2つ続けるのは禁止（意図的ジャンプカット以外）
+- インサート映像1カットの適切な尺: 3〜5秒（短すぎず長すぎず）
+
+【シーンの尺の設計】
+- VLOG尺（人間性が見えるシーン）: 15秒以内
+- 本編1シーン（1つの話題）: 60秒以内。60秒の中に30秒ルールが2回入る
+- 訴求コア（最も伝えたい話）: 最大180秒。180秒の中に30秒ブロック×6が必要
+
+【トラック構成（マニュアル準拠）】
+- V1: メイン映像（インタビュー・本撮影）
+- V2: インサート・Bロール（V1を補う映像）
+- V3: モザイク・ブラー（必要箇所のみ）
+- V4: カラー調整
+- V5: 字幕（全体に均一に入っているのが理想）
+- V6/V7: 強調テロップ（演出）← ここが少ない区間 = 単調のサイン
+- V8: トランジション・指示メモ
+- A1: メイン音声（インタビュー）
+- A2: サブ音声・ナレーション
+- A3: BGM（1動画15〜30曲）← 切れ目が少ない区間 = 感情変化なし
+- A4〜A6: SE・効果音
+
+【シーケンス診断の2大チェック】
+CHECK1: V6・V7が少ない区間 → 演出不足・単調。強調テロップが足りない
+CHECK2: A3のBGMが変わらない区間 → 感情・雰囲気が変化していない
+
+■ 視聴者の脳が反応するポイント（5種類）
+1. 感情スイッチ（扁桃体）: ドキドキ・感動・笑い・怒り → 感情的な発言・表情のアップ
+2. 続きが見たい（大脳辺縁系）: 「次どうなるの?」という引き → 謎かけ・テンポの変化
+3. 共感（ミラーニューロン）: 「自分のことみたい」という感覚 → インタビューの生の声・表情
+4. 納得（前頭前野）: 「なるほど」という理解 → 数字・テロップ・説明
+5. 記憶に残る（海馬）: 「あの動画の〇〇のシーン」 → 繰り返し・印象的なシーン
+
+■ AKスタイル基準（6作品の実測データから算出）
+
+【AKベスト作品データ（2作品平均）】
+- 宇宙への挑戦者: V1=257カット / 平均4.2秒 / 最長25.2秒 / 30超0個 / Bロール291 / テロップ336 / フィラー1個
+- 本編_1: V1=210カット / 平均5.1秒 / 最長27.0秒 / 30超0個
+- 2作品平均: 平均カット尺4.7秒 / 最長26秒以内 / 30秒超0個（絶対条件）
+
+【各スコア帯の実測値】
+- 88点（宇宙への挑戦者）: 冒頭10秒以内に「きつい・挫折・自殺者」→扁桃体直撃 / フィラー1個 / Bロール291 / テロップ336
+- 78点（FANTSあいみさん）: テロップ178 / 字幕126 / 平均4.2秒 / ただしギャップ14個・BGM曲数少ない
+- 74点（修正版）: Bロール306 / 字幕426 / ただしテロップ1 / BGM不足
+- 65点（初稿）: 30秒ルール遵守のみ / Bロール50（基準の33%）/ テロップ5 / ギャップ17個
+
+【採点基準の閾値】
+- 平均カット尺: 2〜8秒→満点 / 8〜12秒→警告 / 12秒以上→大幅減点
+- 30秒超えカット: 0個→満点 / 1個でも🔴（43秒静止画1個でD→C相当の減点）
+- V1ギャップ: 5個以下→良 / 7個以下→許容 / 13個以上→問題 / 17個以上→深刻
+- Bロール（20分換算291基準）: 70%以上→良 / 40〜70%→警告 / 40%未満→問題
+- テロップ（20分換算336基準）: 50%以上→良 / 20〜50%→警告 / 5クリップ以下→問題
+- BGM: 曲数で評価（20分で15〜30曲）/ カバレッジ%は使わない / 無音は演出の一つ
+- フィラー: 1個以下→満点 / 3個以下→良 / 10個以上→大幅減点
+
+■ 起承転結の理想比率
+- 起（導入）: 10〜15% / 承（展開）: 50〜55%
+- 転（クライマックス）: 15〜20% / 結（まとめ）: 15〜20%
+
+【宇宙への挑戦者（88点）の実測値 — 理想に近い】
+- 起: 0:00〜2:24（12%）冒頭フックで扁桃体直撃
+- 承: 2:24〜13:00（55%）論理と感情が交互に刺激
+- 転: 13:00〜16:35（18%）冒頭フックの回収
+- 結: 16:35〜19:57（15%）余韻と次への引き
+
+■ オーディオ採点の重要原則
+- BGMカバレッジ%では評価しない。無音も演出の一つ
+- 「音の設計」として評価: BGMと無音が意図を持って使い分けられているか
+- BGM曲数（20分で15〜30曲）と、シーンの感情との一致度で評価
+- 意図メモに「現場音を活かした」「演出的な無音」とある場合は加点要素として評価
+
+【実測データからの音声採点基準】
+- A1インタビュー音声: カバレッジ93%以上→良 / ギャップ7個以下→良
+- BGM曲数: 20分で15〜30曲基準。総尺に比例換算する。BGMが変わるたびに場面の空気が切り替わる
+- 冒頭ギャップ: 冒頭2分以内の大きなギャップは離脱リスク直結→特に重視
+- 宇宙への挑戦者のフィラー1個は最高基準。3個以下で合格圏
+
+■ 重要: 意図メモがある場合はそれを考慮して採点すること。
+意図的な逸脱は減点しない。ただしその意図が脳科学的に有効かを評価すること。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+■ 採点基準（全項目・明確な配点）
+
+【構成 — 合計35点】
+① カット数・テンポ（10点）
+  10点: 平均カット尺2〜8秒かつカット数が総尺比で適切
+   8点: 平均8〜10秒
+   5点: 平均10〜12秒
+   2点: 平均12秒以上（見ていて眠い）
+  ★ 3秒ルール加点: 30秒ブロック内にカットが6個以上（=平均5秒以下）あれば演出が密度高いと評価
+
+② 30秒ルール遵守（10点）
+  10点: 30秒超えカット0個（視聴者が飽きない構成）
+   6点: 30秒超えカット1個
+   3点: 30秒超えカット2〜3個
+   0点: 4個以上（離脱確定）
+
+③ 冒頭フック（10点）
+  10点: 最初の10秒以内に感情的なキーワード（辛い・驚き・数字）がある
+   7点: 30秒以内にある
+   4点: 1分以内にある
+   0点: フックが見当たらない（離脱確定）
+
+④ 無音ギャップ（5点）
+   5点: 5個以下
+   3点: 6〜8個
+   1点: 9〜13個
+   0点: 14個以上（途中で音が突然消える）
+
+【オーディオ — 合計35点】
+① インタビュー音声（12点）
+  12点: カバレッジ93%以上 かつ ギャップ7個以下
+   9点: カバレッジ85〜93%
+   6点: カバレッジ70〜85%
+   3点: カバレッジ70%未満
+
+② 音の設計・BGM（12点）
+  12点: BGM曲数が総尺比で15曲/20分相当 かつ 無音が意図的に使われている
+   9点: 10〜15曲相当
+   6点: 5〜10曲相当
+   3点: 5曲未満（音楽がほぼない）
+
+③ フィラー除去・言い淀み（6点）
+   6点: フィラー1個以下（プロ水準）
+   4点: 2〜3個
+   2点: 4〜9個
+   0点: 10個以上（見ていて気になる）
+
+④ SE・効果音（5点）
+   5点: 場面転換・強調に効果音が適切に使われている
+   3点: 少ないが使われている
+   0点: ほぼなし
+
+【編集演出 — 合計30点】
+① Bロール密度（12点）
+  12点: 総尺比でBロール70%以上（20分換算で291クリップ以上）
+   9点: 50〜70%（145〜203クリップ相当）
+   5点: 25〜50%（73〜145クリップ相当）
+   0点: 25%未満（顔だけ映像が続く）
+
+② テロップ・情報表示（10点）
+  10点: 総尺比でテロップ50%以上（20分換算で168クリップ以上）
+   7点: 30〜50%
+   4点: 10〜30%
+   0点: 5クリップ以下（情報が伝わらない）
+
+③ 字幕（4点）
+   4点: 全編に字幕あり
+   2点: 一部あり
+   0点: なし
+
+④ エフェクト・演出（4点）
+   4点: 場面に合ったエフェクトが使われている
+   2点: 少しある
+   0点: なし
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+■ 離脱ポイントの特定方法
+以下の条件に当てはまる箇所を「離脱ポイント」として特定すること：
+- 30秒超えカットがある → そのタイムコード
+- 30秒ブロックの平均カット尺が12秒以上 → そのブロックの開始タイムコード
+- 音声ギャップが5秒以上 → そのタイムコード
+- 冒頭1分以内にフックがない → 「0:00〜1:00が離脱ゾーン」
+- 承→転の切り替えが弱い → そのタイムコード
+各離脱ポイントは「なぜ離脱するか」を高校生でも分かる言葉で説明すること。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${summary}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+以下のJSON形式のみで返答（説明不要）:
+{
+  "total_score": 78,
+  "grade": "C+",
+  "grade_sub": "面白くない。あと2点で合格ライン",
+  "summary": "全体評価2-3文。高校生でも分かる言葉で。80点未満なら最初に「この動画は面白くない。理由は〇〇」と明記。辛口で具体的に。",
+  "categories": [
+    {
+      "name": "構成", "icon": "📐",
+      "score": 26, "max": 35,
+      "items": [
+        {"name":"カット数・テンポ","score":8,"max":10,"status":"good","comment":"平均4.2秒で快適なテンポ","fix":""},
+        {"name":"30秒ルール","score":10,"max":10,"status":"good","comment":"30秒超えカット0個。完璧","fix":""},
+        {"name":"冒頭フック","score":8,"max":10,"status":"good","comment":"最初10秒以内に感情的なキーワードあり","fix":""},
+        {"name":"無音ギャップ","score":1,"max":5,"status":"danger","comment":"14個のギャップ。視聴中に音が突然消える","fix":"インタビューの無音区間をカットするか効果音で埋める"}
+      ]
+    },
+    {
+      "name": "オーディオ", "icon": "🎵",
+      "score": 22, "max": 35,
+      "items": [
+        {"name":"インタビュー音声","score":9,"max":12,"status":"warning","comment":"カバレッジ86%。あと少し","fix":"無音区間を3箇所カット"},
+        {"name":"音の設計・BGM","score":9,"max":12,"status":"warning","comment":"BGM曲数は十分。ただし中盤2分の無音が長い","fix":"BGMを追加するか意図として説明する"},
+        {"name":"フィラー除去","score":4,"max":6,"status":"warning","comment":"えーが5個。気になるレベル","fix":"えーの前後をカット"},
+        {"name":"SE・効果音","score":3,"max":5,"status":"warning","comment":"場面転換に効果音が少ない","fix":"テロップ出しに効果音を追加"}
+      ]
+    },
+    {
+      "name": "編集演出", "icon": "🎬",
+      "score": 24, "max": 30,
+      "items": [
+        {"name":"Bロール密度","score":9,"max":12,"status":"warning","comment":"162クリップ。基準の60%。顔が多い","fix":"撮影素材があればBロールを追加する"},
+        {"name":"テロップ","score":10,"max":10,"status":"good","comment":"178クリップ。情報が伝わりやすい","fix":""},
+        {"name":"字幕","score":4,"max":4,"status":"good","comment":"全編に字幕あり","fix":""},
+        {"name":"エフェクト","score":2,"max":4,"status":"warning","comment":"場面転換のエフェクトが少ない","fix":"テロップ出しにアニメーションを追加"}
+      ]
+    }
+  ],
+  "story_structure": {
+    "起": {"start_tc":"0:00","end_tc":"2:00","duration_sec":120,"ratio":0.11,"score":85,"status":"good","comment":"最初10秒で「きつい・挫折」と提示。引きが強い","content":"冒頭ダイジェスト＋自己紹介"},
+    "承": {"start_tc":"2:00","end_tc":"12:00","duration_sec":600,"ratio":0.54,"score":70,"status":"warning","comment":"情報が多く感情の起伏が少ない区間がある","content":"取材・インタビュー・現場映像"},
+    "転": {"start_tc":"12:00","end_tc":"16:00","duration_sec":240,"ratio":0.22,"score":60,"status":"danger","comment":"クライマックスへの切り替えが弱い。もっとドラマチックにできる","content":"感情的なピークシーン"},
+    "結": {"start_tc":"16:00","end_tc":"18:27","duration_sec":147,"ratio":0.13,"score":78,"status":"good","comment":"まとめは自然。次への引きがもう少し欲しい","content":"まとめ・締め"}
+  },
+  "structure_comment": "起承転結全体への一言総評（高校生でも分かる言葉で）",
+  "brain_analysis": {
+    "ドキドキ感情シーン": "適切",
+    "続きが見たくなる引き": "少ない",
+    "共感できる場面": "適切",
+    "説明・数字シーン": "多い",
+    "記憶に残るシーン": "少ない"
+  },
+  "dropout_points": [
+    {
+      "timecode": "0:11",
+      "duration_sec": 5,
+      "reason": "冒頭11秒で5秒間の無音。最初に音が消えると視聴者は「再生できてない?」と思って閉じる",
+      "severity": "critical",
+      "fix": "この無音区間をカットするか、効果音かBGMを入れる"
+    },
+    {
+      "timecode": "5:17",
+      "duration_sec": 43,
+      "reason": "43秒間同じ静止画。脳が飽きて離脱する。30秒ルール違反",
+      "severity": "critical",
+      "fix": "この画像は10秒以内にカット。余った時間にBロールを差し替える"
+    },
+    {
+      "timecode": "3:00",
+      "duration_sec": 60,
+      "reason": "3:00〜4:00のカットが平均12秒。テンポが急に遅くなる。見ていて眠くなる区間",
+      "severity": "warning",
+      "fix": "この区間のカットを細かく分割するか、Bロールを多く挟む"
+    }
+  ],
+  "top_issues": [
+    {"priority":1,"timecode":"0:11","issue":"冒頭11秒で音が消える（5秒間）。視聴者が「壊れてる?」と思って閉じる","fix":"ここにBGMかSEを入れる。または無音区間をカット","intentional":false},
+    {"priority":2,"timecode":"5:17","issue":"43秒間ずっと同じ画像。さすがに長すぎて離脱する","fix":"10秒以内に切り上げて別の映像を入れる","intentional":false}
+  ]
+}
+severityは"critical"（すぐ直す）/"warning"（できれば直す）/"info"（参考）。statusは"good"/"warning"/"danger"。JSONのみ。`;
+}
+
+// ─── render ───────────────────────────────────────────────────
+function renderResult(r, xml, srt, intent){
+  const score=r.total_score||0;
+  // ソースバッジ更新
+  const sb=$('source-badge');
+  if(sb){
+    if(r.source==='ai'){
+      sb.textContent='🤖 Claude AI採点 — 数値 × AIコメント';
+      sb.style.color='var(--pink)';
+    } else {
+      sb.textContent='📊 ローカル採点 — 数値12項目を自動計算（APIキー不要）';
+      sb.style.color='var(--light)';
+    }
+  }
+  $('score-num').textContent=score;
+  $('grade-txt').textContent=r.grade||'—';
+  $('grade-sub').textContent=r.grade_sub||'';
+  $('result-summary').textContent=r.summary||'';
+
+  // 80点判定バナーを表示
+  const banner=$('verdict-banner');
+  if(score>=90){
+    banner.style.display='flex';
+    banner.style.background='#e8faf4';
+    banner.style.borderColor='#0fa070';
+    banner.innerHTML=`<span style="font-size:18px">🎉</span> <strong style="color:#0fa070">面白い動画 — ${score}点</strong><span style="color:#555570;font-size:12px;margin-left:8px">バズる可能性あり。このクオリティを維持してください。</span>`;
+  } else if(score>=80){
+    banner.style.display='flex';
+    banner.style.background='#fff8e6';
+    banner.style.borderColor='#c97a00';
+    banner.innerHTML=`<span style="font-size:18px">✅</span> <strong style="color:#c97a00">面白い動画 — ${score}点</strong><span style="color:#555570;font-size:12px;margin-left:8px">合格ライン突破。ただし改善の余地あり。</span>`;
+  } else {
+    banner.style.display='flex';
+    banner.style.background='#fef0f0';
+    banner.style.borderColor='#d43030';
+    banner.innerHTML=`<span style="font-size:18px">🔴</span> <strong style="color:#d43030">面白くない動画 — ${score}点</strong><span style="color:#555570;font-size:12px;margin-left:8px">視聴者は途中で離脱します。80点を超えるまで修正が必要。</span>`;
+  }
+
+  // スコアアーク
+  const arc=$('score-arc');
+  const color=score>=80?'#4ECDC4':score>=65?'#FFD93D':'#FF8FAB';
+  arc.style.stroke=color; arc.setAttribute('stroke','none');
+  arc.style.stroke=''; arc.style.stopColor=color;
+  setTimeout(()=>{ arc.style.strokeDashoffset=364*(1-score/100); },100);
+
+  // グレードカラー
+  const gc=score>=80?'#4ECDC4':score>=65?'#f5a623':'#e05555';
+  $('grade-txt').style.color=gc;
+
+  // 意図メモ表示
+  const ida=$('intent-display-area');
+  if(intent){ ida.innerHTML=`<div class="intent-display" style="margin-top:14px"><div class="intent-display-label">💡 意図メモ</div><div class="intent-display-text">${intent}</div></div>`; }
+  else ida.innerHTML='';
+
+  // 統計テーブル
+  const sta=$('stats-table-area');
+  if(xml?.ok){
+    const ratio=xml.totalDur/1200;
+    sta.innerHTML=`<div class="stats-table">
+      <div class="st-row st-head"><div class="st-cell bold">指標</div><div class="st-cell bold">この動画</div><div class="st-cell bold">AK基準</div><div class="st-cell bold">判定</div></div>
+      <div class="st-row"><div class="st-cell bold">総尺</div><div class="st-cell">${ft(xml.totalDur)}</div><div class="st-cell">〜20分</div><div class="st-cell">—</div></div>
+      <div class="st-row"><div class="st-cell bold">V1カット数</div><div class="st-cell">${xml.v1Clips}</div><div class="st-cell">${Math.round(234*ratio)}</div><div class="st-cell ${xml.v1Clips>=Math.round(234*ratio*0.8)?'g':'w'}">${xml.v1Clips>=Math.round(234*ratio*0.8)?'✅':'⚠️'}</div></div>
+      <div class="st-row"><div class="st-cell bold">平均カット尺</div><div class="st-cell">${xml.v1Avg}秒</div><div class="st-cell">4.7秒</div><div class="st-cell ${2<=xml.v1Avg&&xml.v1Avg<=8?'g':'w'}">${2<=xml.v1Avg&&xml.v1Avg<=8?'✅':'⚠️'}</div></div>
+      <div class="st-row"><div class="st-cell bold">30秒超えカット</div><div class="st-cell">${xml.v1Over30}個</div><div class="st-cell">0個</div><div class="st-cell ${xml.v1Over30===0?'g':'b'}">${xml.v1Over30===0?'✅':'🔴'}</div></div>
+      <div class="st-row"><div class="st-cell bold">V1ギャップ</div><div class="st-cell">${xml.v1Gaps}個</div><div class="st-cell">7個以下</div><div class="st-cell ${xml.v1Gaps<=7?'g':'w'}">${xml.v1Gaps<=7?'✅':'⚠️'}</div></div>
+      <div class="st-row"><div class="st-cell bold">V2 Bロール</div><div class="st-cell">${xml.v2Count}</div><div class="st-cell">${Math.round(291*ratio)}</div><div class="st-cell ${xml.v2Count>=Math.round(291*ratio*0.7)?'g':'w'}">${xml.v2Count>=Math.round(291*ratio*0.7)?'✅':'⚠️'}</div></div>
+      <div class="st-row"><div class="st-cell bold">テロップ（${xml.telopTracks?.join(',')||'V5'}）</div><div class="st-cell">${xml.telopCount}</div><div class="st-cell">${Math.round(336*ratio)}</div><div class="st-cell ${xml.telopCount>=Math.round(336*ratio*0.5)?'g':'w'}">${xml.telopCount>=Math.round(336*ratio*0.5)?'✅':'⚠️'}</div></div>
+      <div class="st-row"><div class="st-cell bold">BGM使用曲数</div><div class="st-cell">${xml.totalSongCount}曲</div><div class="st-cell">15〜20曲/20分</div><div class="st-cell ${xml.totalSongCount>=10?'g':xml.totalSongCount>=6?'w':'b'}">${xml.totalSongCount>=10?'✅':xml.totalSongCount>=6?'⚠️':'🔴'}</div></div>
+      ${srt?`<div class="st-row"><div class="st-cell bold">フィラーワード</div><div class="st-cell">${srt.fillerCount}個</div><div class="st-cell">3個以下</div><div class="st-cell ${srt.fillerCount<=3?'g':srt.fillerCount<=8?'w':'b'}">${srt.fillerCount<=3?'✅':srt.fillerCount<=8?'⚠️':'🔴'}</div></div>`:''}
+    </div>`;
+  } else sta.innerHTML='';
+
+  // 3カテゴリ
+  const statusC={good:['var(--green)','var(--green)'],warning:['var(--amber)','var(--amber)'],danger:['var(--red)','var(--red)']};
+  $('cat-grid').innerHTML=(r.categories||[]).map(cat=>{
+    const pct=Math.round(cat.score/cat.max*100);
+    const col=pct>=80?'var(--green)':pct>=60?'var(--amber)':'var(--red)';
+    const items=(cat.items||[]).map(it=>`
+      <div class="cat-item ${it.status}">
+        <div class="cat-item-head">
+          <span class="cat-item-name">${it.status==='good'?'✅':it.status==='warning'?'⚠️':'🔴'} ${it.name}</span>
+          <span class="cat-item-score" style="color:${it.status==='good'?'var(--green)':it.status==='warning'?'var(--amber)':'var(--red)'}">${it.score}/${it.max}</span>
+        </div>
+        <div class="cat-item-comment">${it.comment}</div>
+        ${it.fix?`<div class="cat-item-fix">${it.fix}</div>`:''}
+      </div>`).join('');
+    return `<div class="cat-card">
+      <div class="cat-head">
+        <div class="cat-icon-title"><span class="cat-icon">${cat.icon}</span><span class="cat-name">${cat.name}</span></div>
+        <div class="cat-score-row"><span class="cat-score-num" style="color:${col}">${cat.score}</span><span class="cat-score-den"> / ${cat.max}点</span></div>
+        <div class="cat-bar"><div class="cat-bar-fill" style="width:${pct}%;background:${col}"></div></div>
+      </div>
+      <div class="cat-items">${items}</div>
+    </div>`;
+  }).join('');
+
+  // 起承転結
+  const ss=r.story_structure;
+  const sa=$('story-area');
+  if(ss){
+    const parts=['起','承','転','結'];
+    const colors={good:'#4ECDC4',warning:'#FFD93D',danger:'#FF8FAB'};
+    const idealR={起:'10-15%',承:'50-55%',転:'15-20%',結:'15-20%'};
+    const barSegs=parts.map(p=>{
+      const d=ss[p]; if(!d)return'';
+      const flex=Math.round((d.ratio||0)*100);
+      const c=colors[d.status]||'#ccc';
+      const textC=d.status==='warning'?'#7a4a00':d.status==='danger'?'#7a0000':'#0a5a50';
+      return `<div class="story-seg" style="flex:${flex};background:${c};color:${textC}">${p} ${flex}%</div>`;
+    }).join('');
+    const cards=parts.map(p=>{
+      const d=ss[p]; if(!d)return'';
+      const c=colors[d.status]||'#ccc';
+      const pct=Math.round((d.ratio||0)*100);
+      return `<div class="story-card">
+        <div class="story-card-label" style="color:${c}">${p}</div>
+        <div class="story-tc">${d.start_tc} 〜 ${d.end_tc}</div>
+        <div class="story-pct" style="color:${d.status==='good'?'var(--green)':d.status==='warning'?'var(--amber)':'var(--red)'}">${pct}% <span style="font-size:10px;color:var(--light)">(理想: ${idealR[p]})</span></div>
+        <div class="story-comment">${d.comment}</div>
+        <div class="story-content">${d.content}</div>
+      </div>`;
+    }).join('');
+    sa.innerHTML=`
+    <div class="divider"></div>
+    <div class="sec-num">04 / STRUCTURE</div>
+    <div class="sec-title">起承転結 構造分析</div>
+    <div class="story-section">
+      <div class="story-bar-wrap">${barSegs}</div>
+      <div class="story-cards">${cards}</div>
+      ${r.structure_comment?`<p style="margin-top:14px;font-size:13px;color:var(--mid);line-height:1.8">${r.structure_comment}</p>`:''}
+    </div>`;
+  } else sa.innerHTML='';
+
+  // 脳部位
+  const bColors={'多い':'bv-warn','多すぎる':'bv-warn','適切':'bv-ok','ちょうどいい':'bv-ok','少ない':'bv-bad','少なすぎる':'bv-bad','足りない':'bv-bad'};
+  const brainEmoji={'ドキドキ感情シーン':'❤️','続きが見たくなる引き':'🔥','共感できる場面':'🪞','説明・数字シーン':'🧠','記憶に残るシーン':'📖'};
+  $('brain-grid').innerHTML=Object.entries(r.brain_analysis||{}).map(([k,v])=>`
+    <div class="brain-cell">
+      <div style="font-size:20px;margin-bottom:6px">${brainEmoji[k]||'🧩'}</div>
+      <div class="brain-name">${k.replace(/_/g,' ')}</div>
+      <div class="brain-val ${bColors[v]||'bv-warn'}">${v}</div>
+    </div>`).join('');
+
+  // 離脱ポイント
+  const dropoutEl=$('dropout-list');
+  const dp=r.dropout_points||[];
+  if(dp.length){
+    const sevLabel={critical:'🔴 今すぐ直す',warning:'⚠️ できれば直す',info:'ℹ️ 参考'};
+    dropoutEl.innerHTML=dp.map(d=>{
+      const sev=d.severity||'warning';
+      return`<div class="dropout-card ${sev}">
+        <div>
+          <div class="dropout-tc ${sev}">${d.timecode||'—'}<span class="dropout-tc-sub">${d.duration_sec?d.duration_sec+'秒':''}</span></div>
+        </div>
+        <div style="flex:1">
+          <span class="dropout-badge ${sev}">${sevLabel[sev]||sev}</span>
+          <div class="dropout-reason">${d.reason||''}</div>
+          <div class="dropout-fix">${d.fix||''}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    dropoutEl.innerHTML=`<div style="padding:16px;background:var(--bg2);border-radius:10px;font-size:13px;color:var(--mid)">明確な離脱ポイントは検出されませんでした。</div>`;
+  }
+
+  // 改善項目
+  $('issues-list').innerHTML=(r.top_issues||[]).map((issue,i)=>{
+    const intentBadge=issue.intentional?`<span style="font-size:10px;font-weight:700;color:var(--amber);margin-left:8px;font-family:var(--fm)">💡 意図的</span>`:'';
+    return `<div class="issue-card">
+      <div class="issue-num" style="background:${issue.intentional?'var(--amber)':'var(--text)'}">${issue.priority||i+1}</div>
+      <div style="flex:1">
+        <div class="issue-tc" style="display:flex;align-items:center">${issue.timecode||''}${intentBadge}</div>
+        <div class="issue-txt">${issue.issue}</div>
+        <div class="issue-fix">${issue.fix}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── report ───────────────────────────────────────────────────
+function downloadReport(){
+  if(!lastResult){toast('先に採点してください');return;}
+  const r=lastResult;
+  const ss=r.story_structure||{};
+  const lines=[
+    'EDIT SCORE — 編集クオリティ採点レポート',
+    '='.repeat(44),
+    `採点日: ${new Date().toLocaleDateString('ja-JP')}`,
+    `総合スコア: ${r.total_score}点 / ${r.grade} ${r.grade_sub||''}`,
+    `評価: ${r.summary}`,
+    r._intent?`\n意図メモ: ${r._intent}`:'',
+    '',
+    '── カテゴリ別スコア ──',
+    ...(r.categories||[]).map(c=>[
+      `${c.name}: ${c.score}/${c.max}`,
+      ...(c.items||[]).map(it=>`  ${it.status==='good'?'✅':it.status==='warning'?'⚠️':'🔴'} ${it.name}: ${it.score}/${it.max} — ${it.comment}${it.fix?'\n    → '+it.fix:''}`)
+    ]).flat(),
+    '',
+    '── 起承転結 ──',
+    ...['起','承','転','結'].map(p=>{
+      const d=ss[p]; return d?`${p}（${d.start_tc}〜${d.end_tc} / ${Math.round((d.ratio||0)*100)}%）: ${d.comment}`:`${p}: データなし`;
+    }),
+    r.structure_comment?`総評: ${r.structure_comment}`:'',
+    '',
+    '── 脳部位バランス ──',
+    ...Object.entries(r.brain_analysis||{}).map(([k,v])=>`${k}: ${v}`),
+    '',
+    '',
+    '── 離脱ポイント ──',
+    ...(r.dropout_points||[]).map(d=>`${d.timecode||'—'} [${d.severity||''}] ${d.reason}\n   修正: ${d.fix}`),
+    '',
+    '── 優先改善項目 ──',
+    ...(r.top_issues||[]).map(i=>`${i.priority}. [${i.timecode}]${i.intentional?' 💡意図的':''} ${i.issue}\n   → ${i.fix}`),
+  ].filter(l=>l!=='');
+  const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`edit_score_${new Date().toISOString().slice(0,10)}.txt`;
+  a.click();
+}
+
+function toast(msg,ms=2800){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),ms); }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+</script>
+</body>
+</html>
