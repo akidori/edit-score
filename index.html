@@ -463,6 +463,8 @@ const A_ROLE_OPTIONS = [
 function guessVRole(idx, names, count, avg, coverage){
   if(count===0) return 'other';
   if(idx===0) return 'main';
+  // V2以降で撮影素材（C00/IMG/DJI/.MOV）のみ → Bロール確定
+  if(idx===1 && hasCameraFootage) return 'broll';
   if(idx===1) return 'broll';
 
   // ── 特殊判定: 1〜3クリップで全編カバー → 調整レイヤー/ネスト ──
@@ -474,6 +476,10 @@ function guessVRole(idx, names, count, avg, coverage){
   const hasAudio = names.some(n=>n.match(/\.(wav|mp3|m4a)/i));
   const hasVideo = names.some(n=>n.match(/\.(mp4|mov|mxf)/i));
   const hasImg = names.some(n=>n.match(/\.(jpg|jpeg|png|heic|gif)/i));
+  // 撮影素材フラグ（C00xxx / IMG / DJI / .MOV）
+  const isFootageName = n=>/^C0\d/i.test(n)||/^IMG[_\-]/i.test(n)||/^DJI[_\-]/i.test(n)||/\.mov$/i.test(n)||/^MVI/i.test(n)||/^GX\d/i.test(n);
+  const hasCameraFootage = names.some(n=>isFootageName(n));
+  const hasDroneFootage = names.some(n=>/^DJI/i.test(n));
 
   // 調整レイヤー
   if(allAdjust) return 'adjust';
@@ -513,9 +519,12 @@ function guessARole(idx, names, count, coverage){
   if(count===0) return 'other';
   const hasAudio = names.some(n=>n.match(/\.(wav|mp3|m4a|aac|flac)/i));
   const hasVideo = names.some(n=>n.match(/\.(mp4|mov|mxf)/i));
-  const hasDJI = names.some(n=>n.toLowerCase().includes('dji'));
+  const hasDJI = names.some(n=>/^DJI/i.test(n));
+  const hasCamAudio = names.some(n=>/^C0\d/i.test(n)||/^IMG/i.test(n)||/\.mov$/i.test(n));
   if(hasAudio) return names.some(n=>n.match(/^[0-9]|鈴|太鼓|パッ|SE|効果|ショック|ボタン|Boom|決定/i)) ? 'se' : 'bgm';
-  if(hasDJI) return 'broll_audio';
+  if(hasDJI) return 'broll_audio';  // DJI=ドローン現場音
+  if(hasCamAudio && (idx===0||idx===1)) return 'interview';  // C00/IMG=インタビュー音声
+  if(hasCamAudio && idx>=2) return 'broll_audio';
   if(hasVideo && (idx===0||idx===1)) return 'interview';
   if(hasVideo && (idx===2||idx===3)) return 'broll_audio';
   // マニュアル準拠デフォルト: A1=インタビュー, A2=サブ音声, A3=BGM, A4〜=SE
@@ -671,6 +680,18 @@ function parseXML(text){
     const names=clips.map(c=>c.name);
     const isBGM=names.some(n=>/\.(wav|mp3|m4a|aac|flac)$/i.test(n));
     const isSE=names.some(n=>/\.(wav|mp3)$/i.test(n)) && clips.length>10;
+    // 撮影素材の判定: C00xxx / IMG_xxx / DJI_xxx / .MOV系
+    const isFootage=n=>
+      /^C0\d{3,}/i.test(n) ||       // C0075.MP4 など
+      /^IMG[_\-]/i.test(n) ||        // IMG_1234 など
+      /^DJI[_\-]/i.test(n) ||        // DJI_20260222 など
+      /\.mov$/i.test(n) ||           // .MOVファイル
+      /^MVI[_\-]/i.test(n) ||        // MVI_xxxx
+      /^GOPR/i.test(n) ||             // GoPro
+      /^GX\d/i.test(n);              // GoPro Max
+    const footageNames=names.filter(isFootage);
+    const isDroneFootage=names.some(n=>/^DJI/i.test(n));
+    const isCameraFootage=names.some(n=>/^C0\d/i.test(n)||/^IMG/i.test(n)||/\.mov$/i.test(n));
     const uniqueSongs=isBGM?[...new Set(names.filter(n=>/\.(wav|mp3|m4a|aac|flac)$/i.test(n)))]:[];
     // テロップ判定: 日本語テキスト名 or グラフィック多数
     const hasJPText=names.some(n=>/[ぁ-んァ-ン]/.test(n));
@@ -738,7 +759,14 @@ function parseXML(text){
     if(!s||!e) return null;
     const sv=parseInt(s.textContent),ev=parseInt(e.textContent);
     if(ev<=sv||sv<0) return null;
-    const nm=(n?.textContent||'').replace(/\.mp4|\.mov|\.mxf/gi,'').replace(/_[0-9]+$/,'').trim();
+    // 撮影素材名を正規化（ファイル番号を除いてベース名で比較）
+    const rawNm=n?.textContent||'';
+    // C0075.MP4 → C00 / DJI_20260222183807_0029_D → DJI_20260222 / IMG_1234 → IMG
+    let nm=rawNm;
+    if(/^C0\d/i.test(rawNm)) nm=rawNm.replace(/\.\w+$/,'').replace(/\d{2,}$/,'').trim()||rawNm;
+    else if(/^DJI/i.test(rawNm)) nm=rawNm.split('_').slice(0,2).join('_');
+    else if(/^IMG/i.test(rawNm)) nm=rawNm.replace(/[_\-]\d+.*/,'');
+    else nm=rawNm.replace(/\.mp4|\.mov|\.mxf/gi,'').replace(/_[0-9]+$/,'').trim();
     return{start:Math.round(sv/fps*10)/10,end:Math.round(ev/fps*10)/10,dur:Math.round((ev-sv)/fps*10)/10,name:nm};
   }).filter(Boolean).sort((a,b)=>a.start-b.start) : [];
 
