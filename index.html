@@ -847,7 +847,9 @@ function parseSRT(text){
       const tc=s=>{const p=s.replace(/[,]/,'.').split(':');return parseInt(p[0])*3600+parseInt(p[1])*60+parseFloat(p[2]);};
       let text2='',j=i+1;
       while(j<lines.length&&lines[j].trim()&&!lines[j].match(/^\d+$/)&&!lines[j].includes('-->')){text2+=lines[j].trim()+' ';j++;}
-      if(text2.trim()) subs.push({start:tc(ss),end:tc(es),text:text2.trim()});
+      // 30秒以上は発話ではなくテロップ（タイトル字幕等）→ 除外
+      const sdur=tc(es)-tc(ss);
+      if(text2.trim()&&sdur<30) subs.push({start:tc(ss),end:tc(es),text:text2.trim()});
       i=j; continue;
     }
     // 独自形式 HH:MM:SS:FF
@@ -876,7 +878,9 @@ function parseSRT(text){
       if(cols.length>=3){
         const st=tryTime(cols[0]),en=tryTime(cols[1]);
         const txt=cols.slice(2).join(',').trim().replace(/^"|"$/g,'');
-        if(st!==null&&en!==null&&txt&&txt.length>0)
+        // 長尺テロップ（タイトル・常時表示字幕）を除外: 30秒以上は発話ではなくテロップ
+        const dur=en!==null&&st!==null?en-st:0;
+        if(st!==null&&en!==null&&txt&&txt.length>0&&dur<30)
           subs.push({start:st,end:en,text:txt});
       } else if(line.trim().length>2&&!/^\d+$/.test(line.trim())){
         // タイムコードなしのプレーンテキスト: 1行ずつ発話として扱う
@@ -898,8 +902,50 @@ function parseSRT(text){
     const t=bc.map(s=>s.text).join(' ');
     if(t.trim()) blocks.push({start:bs,end:Math.min(bs+30,totalDur),text:t.slice(0,300)});
   }
+  // ── 30秒ブロック単調検出（感情変化・情報密度ベース）──────────────
+  // 30秒ブロックごとに「刺激の種類」を判定
+  // 感情語・数字・質問・笑い などが入っていない = 脳への刺激なし = 30秒ルール違反
+  const topicZones=[];
+  
+  const getBlockStimulus=text=>{
+    const emos=['辛','悲','嬉','楽','怒','恐','驚','感動','泣','笑','ヤバ','すご','最高','地獄','夢','諦'];
+    const nums=/\d+[万億千百十%倍件人年月日回個円秒分時間]/;
+    const quest=/[？?]|どう|なぜ|なんで|いつ|どこ|だれ|何が|何を/;
+    const newInfo=/初めて|実は|実際|具体的|例えば|ただし|しかし|一方|さらに|また/;
+    return{
+      hasEmotion:emos.some(w=>text.includes(w)),
+      hasNumber:nums.test(text),
+      hasQuestion:quest.test(text),
+      hasNewInfo:newInfo.test(text),
+      score:(emos.some(w=>text.includes(w))?1:0)+(nums.test(text)?1:0)+(quest.test(text)?1:0)+(newInfo.test(text)?1:0)
+    };
+  };
+  
+  // 3ブロック連続でスコア0（刺激なし）→ 単調区間
+  let flatStart=-1;
+  for(let i=0;i<blocks.length;i++){
+    const stim=getBlockStimulus(blocks[i].text||'');
+    if(stim.score===0){
+      if(flatStart<0) flatStart=i;
+    } else {
+      if(flatStart>=0&&i-flatStart>=3){ // 90秒以上の刺激なし区間
+        topicZones.push({
+          start:blocks[flatStart].start,
+          end:blocks[i-1].end,
+          keywords:['刺激なし'],
+          duration:Math.round(blocks[i-1].end-blocks[flatStart].start),
+          description:'感情語・数字・質問・新情報がない区間'
+        });
+      }
+      flatStart=-1;
+    }
+  }
+  
+  const mergedTopicZones=[...topicZones];
+
   return{subCount:subs.length,fillerCount,emotionCount,numbers,
-    fullText:allText.slice(0,4000),blocks,totalDur:Math.round(totalDur)};
+    fullText:allText.slice(0,4000),blocks,totalDur:Math.round(totalDur),
+    topicZones:mergedTopicZones};
 }
 
 // ─── score ────────────────────────────────────────────────────
@@ -1045,6 +1091,20 @@ function calcScore(xml, srt, userRoles, intentText){
           reason:`${ft(g.at)}に${g.dur}秒の無音（冒頭）。強い言葉の前の演出ならOK。意図的でなければ要確認`,
           severity:'info',
           fix:`意図的な演出なら意図メモに記載。そうでなければBGMかSEを入れる`
+        });
+      }
+    });
+  }
+
+  // CSV話題単調区間（同じ話題が90秒以上続く）
+  if(srt?.topicZones?.length){
+    srt.topicZones.forEach(z=>{
+      if(z.duration>=120){
+        dropouts.push({
+          timecode:ft(z.start), duration_sec:z.duration,
+          reason:`${ft(z.start)}〜${ft(z.end)}（${Math.round(z.duration/60)}分）「${z.keywords.slice(0,2).join('・')}」という話題が続いている。30秒ルール違反 — 脳が飽きる区間`,
+          severity: z.duration>=180?'critical':'warning',
+          fix:`この区間で話題転換・Bロール・テロップ変化・BGM切り替えのいずれかを入れる`
         });
       }
     });
@@ -1378,6 +1438,7 @@ ${xml.monotoneZones?.length?xml.monotoneZones.map(z=>`  🔴 ${ft(z.start)}〜${
   if(srt){
     s+=`\n【字幕・発話解析】
 字幕数: ${srt.subCount} / フィラー: ${srt.fillerCount}個 / 感情語: ${srt.emotionCount}個 / 数字: ${srt.numbers}個
+話題単調区間（30秒ルール違反）: ${srt.topicZones?.length?srt.topicZones.map(z=>`${ft(z.start)}〜${ft(z.end)}「${z.keywords.slice(0,2).join('・')}」が${Math.round(z.duration/60)}分続く`).join(' / '):'なし'}
 
 30秒ブロック発話（起承転結分析用）:
 ${srt.blocks.map(b=>`  [${ft(b.start)}-${ft(b.end)}] ${b.text.slice(0,80)}`).join('\n')}
@@ -1475,6 +1536,7 @@ CHECK3: 同一インタビュー素材が5分以上続く区間 → 視聴者が
 - テロップ（20分換算336基準）: 50%以上→良 / 20〜50%→警告 / 5クリップ以下→問題
 - BGM: 曲数で評価（20分で15〜30曲）/ カバレッジ%は使わない / 無音は演出の一つ
 - フィラー: 1個以下→満点 / 3個以下→良 / 10個以上→大幅減点
+- 話題の単調さ: 同じキーワードが30秒ブロックで3回以上連続している区間は「30秒ルール違反」として評価。同じ話題が2分以上続いていると脳が飽きて離脱する
 
 ■ 起承転結の理想比率
 - 起（導入）: 10〜15% / 承（展開）: 50〜55%
@@ -1750,6 +1812,7 @@ function renderResult(r, xml, srt, intent){
       <div class="st-row"><div class="st-cell bold">BGM使用曲数</div><div class="st-cell">${xml.totalSongCount}曲</div><div class="st-cell">15〜20曲/20分</div><div class="st-cell ${xml.totalSongCount>=10?'g':xml.totalSongCount>=6?'w':'b'}">${xml.totalSongCount>=10?'✅':xml.totalSongCount>=6?'⚠️':'🔴'}</div></div>
       ${xml.monotoneZones?.length?`<div class="st-row"><div class="st-cell bold" style="color:var(--red)">⚠️ 単調区間</div><div class="st-cell" style="color:var(--red)">${xml.monotoneZones.length}区間</div><div class="st-cell">0区間</div><div class="st-cell b">${xml.monotoneZones.map(z=>ft(z.start)+'〜'+ft(z.end)).join(' / ')}</div></div>`:''}
       ${srt?`<div class="st-row"><div class="st-cell bold">フィラーワード</div><div class="st-cell">${srt.fillerCount}個</div><div class="st-cell">3個以下</div><div class="st-cell ${srt.fillerCount<=3?'g':srt.fillerCount<=8?'w':'b'}">${srt.fillerCount<=3?'✅':srt.fillerCount<=8?'⚠️':'🔴'}</div></div>`:''}
+      ${srt?.topicZones?.length?`<div class="st-row"><div class="st-cell bold" style="color:var(--amber)">⚠️ 話題単調区間</div><div class="st-cell" style="color:var(--amber)">${srt.topicZones.length}区間</div><div class="st-cell">0区間</div><div class="st-cell w">${srt.topicZones.map(z=>ft(z.start)+'〜'+ft(z.end)).join(' ')}</div></div>`:''}
     </div>`;
   } else sta.innerHTML='';
 
